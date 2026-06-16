@@ -248,7 +248,7 @@
 
 ### Task T4: 实现 onboarding 与竞品管理主路径
 
-- [ ] **状态**：未开始
+- [x] **状态**：完成
 
 **文件：**
 - 创建：`apps/web/app/onboarding/page.tsx`
@@ -275,15 +275,16 @@
 **步骤 3：运行验证**
 - Run: `pnpm test -- --run onboarding competitors; pnpm typecheck; pnpm lint`
 - Expected: PASS。
+- Result: PASS。`pnpm test -- --run onboarding competitors` 2 个测试文件、4 个测试通过；`pnpm typecheck` 全部 workspace 通过；`pnpm lint` 通过。
 
 **步骤 4：提交（受 AUTO_COMMIT 控制）**
 - Commit message: `实现引导流程与竞品管理主路径`
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 执行后填写
-    pr: 执行后填写
-    changed_files: 执行后填写
+    commit: 待回写
+    pr: 未创建
+    changed_files: `apps/web/app/onboarding/page.tsx`, `apps/web/app/competitors/page.tsx`, `apps/web/app/competitors/[id]/page.tsx`, `apps/web/app/api/onboarding/route.ts`, `apps/web/app/api/competitors/route.ts`, `apps/web/app/api/competitors/[id]/route.ts`, `apps/web/lib/api-auth.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/__tests__/onboarding.test.ts`, `apps/web/__tests__/competitors.test.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T5: 建立 mock-sites 与差异分析
 

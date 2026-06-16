@@ -1,0 +1,49 @@
+import { requireSession } from "../../../lib/api-auth";
+import { createCompetitor, listCompetitors, type CompetitorLink } from "../../../lib/mvp-store";
+
+export const runtime = "nodejs";
+
+interface CompetitorBody {
+  name?: string;
+  mainDomain?: string;
+  logoUrl?: string;
+  links?: CompetitorLink[];
+}
+
+function validateLinks(links: CompetitorLink[]): string | null {
+  if (links.length > 10) return "A competitor can have at most 10 associated links";
+  const invalid = links.find((link) => !link.label || !link.url || !URL.canParse(link.url));
+  return invalid ? "Associated links require label and valid URL" : null;
+}
+
+export async function GET(request: Request): Promise<Response> {
+  const { session, response } = await requireSession(request);
+  if (response) return response;
+
+  return Response.json({ competitors: listCompetitors(session.userId) });
+}
+
+export async function POST(request: Request): Promise<Response> {
+  const { session, response } = await requireSession(request);
+  if (response) return response;
+
+  const body = (await request.json().catch(() => ({}))) as CompetitorBody;
+  if (!body.name || !body.mainDomain) {
+    return Response.json({ error: "Competitor name and main domain are required" }, { status: 400 });
+  }
+
+  const links = body.links ?? [];
+  const linkError = validateLinks(links);
+  if (linkError) {
+    return Response.json({ error: linkError }, { status: 400 });
+  }
+
+  const competitor = createCompetitor(session.userId, {
+    name: body.name,
+    mainDomain: body.mainDomain,
+    ...(body.logoUrl ? { logoUrl: body.logoUrl } : {}),
+    links,
+  });
+
+  return Response.json(competitor, { status: 201 });
+}
