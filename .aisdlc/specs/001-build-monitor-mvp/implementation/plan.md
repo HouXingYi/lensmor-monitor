@@ -242,7 +242,7 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `b2b8df1`
     pr: 未创建
     changed_files: `eslint.config.mjs`, `apps/web/app/layout.tsx`, `apps/web/app/page.tsx`, `apps/web/app/login/page.tsx`, `apps/web/app/api/auth/login/route.ts`, `apps/web/app/api/auth/logout/route.ts`, `apps/web/lib/session.ts`, `apps/web/middleware.ts`, `apps/web/__tests__/auth-boundary.test.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
