@@ -202,9 +202,9 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `503b590`
     pr: 未创建
-    changed_files: `.gitignore`, `package.json`, `pnpm-lock.yaml`, `packages/domain/src/index.ts`, `packages/domain/src/task-state.ts`, `packages/domain/src/report-contract.ts`, `packages/domain/src/auth-boundary.ts`, `packages/domain/src/__tests__/task-state.test.ts`, `packages/db/package.json`, `packages/db/src/client.ts`, `packages/db/prisma/schema.prisma`, `packages/db/prisma/migrations/20260616085833_init/migration.sql`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
+    changed_files: `.gitignore`, `package.json`, `pnpm-lock.yaml`, `packages/domain/src/index.ts`, `packages/domain/src/task-state.ts`, `packages/domain/src/report-contract.ts`, `packages/domain/src/auth-boundary.ts`, `packages/domain/src/__tests__/task-state.test.ts`, `packages/db/package.json`, `packages/db/src/client.ts`, `packages/db/prisma/schema.prisma`, `packages/db/prisma/migrations/20260616085833_init/migration.sql`, `packages/db/prisma/migrations/migration_lock.toml`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T3: 实现登录与受保护 API 边界
 
