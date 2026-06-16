@@ -1,0 +1,22 @@
+{
+  "id": "feature-launch",
+  "competitor": "acme-ai",
+  "page": "product",
+  "beforeSnapshot": "001-baseline.html",
+  "afterSnapshot": "002-feature-launch.html",
+  "sourceUrl": "https://acme-ai.mock/product",
+  "expectedDiff": [
+    {
+      "type": "feature",
+      "selector": "[data-monitor-id='features']",
+      "before": "Basic alerts",
+      "after": "AI alerts with competitor intent detection",
+      "explainable": true
+    }
+  ],
+  "expectedReportHints": {
+    "summaryMustInclude": ["AI alerts", "intent detection"],
+    "intentCandidates": ["AI differentiation", "premium feature expansion"],
+    "actionCandidates": ["compare alert capabilities", "review own roadmap messaging"]
+  }
+}

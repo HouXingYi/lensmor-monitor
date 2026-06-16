@@ -1,0 +1,22 @@
+{
+  "id": "price-change",
+  "competitor": "acme-ai",
+  "page": "pricing",
+  "beforeSnapshot": "001-baseline.html",
+  "afterSnapshot": "003-price-change.html",
+  "sourceUrl": "https://acme-ai.mock/pricing",
+  "expectedDiff": [
+    {
+      "type": "pricing",
+      "selector": "[data-monitor-id='pro-plan-price']",
+      "before": "$29 / month",
+      "after": "$39 / month",
+      "explainable": true
+    }
+  ],
+  "expectedReportHints": {
+    "summaryMustInclude": ["price", "Pro plan"],
+    "intentCandidates": ["monetization", "packaging"],
+    "actionCandidates": ["review own pricing", "check plan differentiation"]
+  }
+}

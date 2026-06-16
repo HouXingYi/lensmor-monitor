@@ -1,0 +1,22 @@
+{
+  "id": "footer-noise",
+  "competitor": "acme-ai",
+  "page": "pricing",
+  "beforeSnapshot": "001-baseline.html",
+  "afterSnapshot": "004-footer-noise.html",
+  "sourceUrl": "https://acme-ai.mock/pricing",
+  "expectedDiff": [
+    {
+      "type": "noise",
+      "selector": "[data-monitor-id='footer-year']",
+      "before": "2025",
+      "after": "2026",
+      "explainable": false
+    }
+  ],
+  "expectedReportHints": {
+    "summaryMustInclude": [],
+    "intentCandidates": [],
+    "actionCandidates": []
+  }
+}

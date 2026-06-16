@@ -1,0 +1,22 @@
+{
+  "id": "cta-change",
+  "competitor": "acme-ai",
+  "page": "pricing",
+  "beforeSnapshot": "001-baseline.html",
+  "afterSnapshot": "002-cta-change.html",
+  "sourceUrl": "https://acme-ai.mock/pricing",
+  "expectedDiff": [
+    {
+      "type": "cta",
+      "selector": "[data-monitor-id='primary-cta']",
+      "before": "Start free",
+      "after": "Book demo",
+      "explainable": true
+    }
+  ],
+  "expectedReportHints": {
+    "summaryMustInclude": ["CTA", "Book demo"],
+    "intentCandidates": ["sales-led conversion", "qualification"],
+    "actionCandidates": ["review own pricing CTA", "compare demo funnel"]
+  }
+}

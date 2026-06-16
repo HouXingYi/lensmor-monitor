@@ -282,13 +282,13 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `9c8c1df`
     pr: 未创建
     changed_files: `apps/web/app/onboarding/page.tsx`, `apps/web/app/competitors/page.tsx`, `apps/web/app/competitors/[id]/page.tsx`, `apps/web/app/api/onboarding/route.ts`, `apps/web/app/api/competitors/route.ts`, `apps/web/app/api/competitors/[id]/route.ts`, `apps/web/lib/api-auth.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/__tests__/onboarding.test.ts`, `apps/web/__tests__/competitors.test.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T5: 建立 mock-sites 与差异分析
 
-- [ ] **状态**：未开始
+- [x] **状态**：完成
 
 **文件：**
 - 创建：`mock-sites/acme-ai/pages/pricing/snapshots/001-baseline.html`
@@ -314,15 +314,16 @@
 **步骤 3：运行验证**
 - Run: `pnpm test -- --run diff`
 - Expected: PASS，至少 4 类变化可解释。
+- Result: PASS。`pnpm test -- --run diff` 1 个测试文件、2 个测试通过；覆盖 copy、pricing、feature、layout、cta 5 类解释性变化和 noise 负例；`pnpm typecheck` 与 `pnpm lint` 均通过。
 
 **步骤 4：提交（受 AUTO_COMMIT 控制）**
 - Commit message: `建立 mock 竞品快照与差异分析`
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 执行后填写
-    pr: 执行后填写
-    changed_files: 执行后填写
+    commit: 待回写
+    pr: 未创建
+    changed_files: `packages/domain/src/diff.ts`, `packages/domain/src/index.ts`, `packages/domain/src/__tests__/diff.test.ts`, `mock-sites/acme-ai/pages/pricing/snapshots/001-baseline.html`, `mock-sites/acme-ai/pages/pricing/snapshots/002-cta-change.html`, `mock-sites/acme-ai/pages/pricing/snapshots/003-price-change.html`, `mock-sites/acme-ai/pages/pricing/snapshots/004-footer-noise.html`, `mock-sites/acme-ai/pages/pricing/scenarios/cta-change.json`, `mock-sites/acme-ai/pages/pricing/scenarios/price-change.json`, `mock-sites/acme-ai/pages/pricing/scenarios/footer-noise.json`, `mock-sites/acme-ai/pages/product/snapshots/001-baseline.html`, `mock-sites/acme-ai/pages/product/snapshots/002-feature-launch.html`, `mock-sites/acme-ai/pages/product/scenarios/feature-launch.json`, `mock-sites/nova-stack/pages/home/snapshots/001-baseline.html`, `mock-sites/nova-stack/pages/home/snapshots/002-layout-change.html`, `mock-sites/nova-stack/pages/home/snapshots/003-copy-change.html`, `mock-sites/nova-stack/pages/home/scenarios/layout-change.json`, `mock-sites/nova-stack/pages/home/scenarios/copy-change.json`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T6: 实现 Worker 任务执行与 liteLLM 适配器
 

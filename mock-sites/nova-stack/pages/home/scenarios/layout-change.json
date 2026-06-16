@@ -1,0 +1,22 @@
+{
+  "id": "layout-change",
+  "competitor": "nova-stack",
+  "page": "home",
+  "beforeSnapshot": "001-baseline.html",
+  "afterSnapshot": "002-layout-change.html",
+  "sourceUrl": "https://nova-stack.mock",
+  "expectedDiff": [
+    {
+      "type": "layout",
+      "selector": "[data-monitor-id='home-layout']",
+      "before": "Hero followed by feature cards",
+      "after": "Hero followed by comparison table and feature cards",
+      "explainable": true
+    }
+  ],
+  "expectedReportHints": {
+    "summaryMustInclude": ["comparison table"],
+    "intentCandidates": ["competitive positioning", "evaluation support"],
+    "actionCandidates": ["review homepage comparison messaging"]
+  }
+}

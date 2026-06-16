@@ -1,0 +1,22 @@
+{
+  "id": "copy-change",
+  "competitor": "nova-stack",
+  "page": "home",
+  "beforeSnapshot": "001-baseline.html",
+  "afterSnapshot": "003-copy-change.html",
+  "sourceUrl": "https://nova-stack.mock",
+  "expectedDiff": [
+    {
+      "type": "copy",
+      "selector": "[data-monitor-id='hero-copy']",
+      "before": "Hero",
+      "after": "Move faster with AI market monitoring",
+      "explainable": true
+    }
+  ],
+  "expectedReportHints": {
+    "summaryMustInclude": ["AI market monitoring"],
+    "intentCandidates": ["AI repositioning", "category framing"],
+    "actionCandidates": ["review own hero messaging"]
+  }
+}
