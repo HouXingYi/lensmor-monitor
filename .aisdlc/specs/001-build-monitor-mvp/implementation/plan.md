@@ -208,7 +208,7 @@
 
 ### Task T3: 实现登录与受保护 API 边界
 
-- [ ] **状态**：未开始
+- [x] **状态**：完成
 
 **文件：**
 - 创建：`apps/web/app/login/page.tsx`
@@ -235,15 +235,16 @@
 **步骤 3：运行验证**
 - Run: `pnpm test -- --run auth-boundary; pnpm typecheck; pnpm lint`
 - Expected: PASS。
+- Result: PASS。`pnpm test -- --run auth-boundary` 4 个测试通过；`pnpm typecheck` 全部 workspace 通过；`pnpm lint` 通过。执行中补充 `eslint.config.mjs`，使计划中的 lint 命令可执行。
 
 **步骤 4：提交（受 AUTO_COMMIT 控制）**
 - Commit message: `实现单用户登录与服务端保护边界`
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 执行后填写
-    pr: 执行后填写
-    changed_files: 执行后填写
+    commit: 待回写
+    pr: 未创建
+    changed_files: `eslint.config.mjs`, `apps/web/app/layout.tsx`, `apps/web/app/page.tsx`, `apps/web/app/login/page.tsx`, `apps/web/app/api/auth/login/route.ts`, `apps/web/app/api/auth/logout/route.ts`, `apps/web/lib/session.ts`, `apps/web/middleware.ts`, `apps/web/__tests__/auth-boundary.test.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T4: 实现 onboarding 与竞品管理主路径
 
