@@ -1,0 +1,16 @@
+{
+  "name": "@lensmor/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/client.ts",
+  "types": "src/client.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma --name init"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
+  }
+}

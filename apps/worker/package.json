@@ -1,0 +1,15 @@
+{
+  "name": "@lensmor/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lensmor/db": "workspace:*",
+    "@lensmor/domain": "workspace:*",
+    "tsx": "^4.21.0"
+  }
+}
