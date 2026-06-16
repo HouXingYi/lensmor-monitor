@@ -361,7 +361,7 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `4a8b8e0`
     pr: 未创建
     changed_files: `apps/worker/src/index.ts`, `apps/worker/src/task-runner.ts`, `apps/worker/src/litellm-client.ts`, `apps/worker/src/scheduler.ts`, `apps/worker/src/__tests__/task-runner.test.ts`, `apps/web/app/api/tasks/route.ts`, `apps/web/app/api/tasks/[id]/route.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
