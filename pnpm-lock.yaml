@@ -52,6 +52,9 @@ importers:
         specifier: ^19.2.0
         version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@lensmor/worker':
+        specifier: workspace:*
+        version: link:../worker
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.17

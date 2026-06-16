@@ -400,13 +400,13 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `7370728`
     pr: 未创建
     changed_files: `apps/web/app/inbox/page.tsx`, `apps/web/app/reports/[id]/page.tsx`, `apps/web/app/api/reports/route.ts`, `apps/web/app/api/reports/[id]/route.ts`, `apps/web/app/api/reports/[id]/feedback/route.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/__tests__/inbox.test.ts`, `apps/web/__tests__/feedback.test.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T8: 集成验证与文档收尾
 
-- [ ] **状态**：未开始
+- [x] **状态**：完成
 
 **文件：**
 - 修改：`README.md`
@@ -429,15 +429,16 @@
 **步骤 3：运行完整验证**
 - Run: `pnpm lint; pnpm typecheck; pnpm test; pnpm test:e2e`
 - Expected: PASS。
+- Result: PASS。`pnpm test:e2e` 1 个 e2e 测试通过；`pnpm lint` 通过；`pnpm typecheck` 全部 workspace 通过；`pnpm test` 9 个测试文件、22 个测试通过。
 
 **步骤 4：提交（受 AUTO_COMMIT 控制）**
 - Commit message: `补齐 MVP 集成验证与运行说明`
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 执行后填写
-    pr: 执行后填写
-    changed_files: 执行后填写
+    commit: 待回写
+    pr: 未创建
+    changed_files: `README.md`, `.env.example`, `eslint.config.mjs`, `apps/worker/package.json`, `apps/web/package.json`, `pnpm-lock.yaml`, `apps/web/e2e/mvp-flow.spec.ts`, `apps/web/__tests__/mvp-flow-helper.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ## I1-DoD 自检
 
