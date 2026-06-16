@@ -367,7 +367,7 @@
 
 ### Task T7: 实现情报收件箱、报告详情与反馈
 
-- [ ] **状态**：未开始
+- [x] **状态**：完成
 
 **文件：**
 - 创建：`apps/web/app/inbox/page.tsx`
@@ -393,15 +393,16 @@
 **步骤 3：运行验证**
 - Run: `pnpm test -- --run inbox feedback; pnpm typecheck; pnpm lint`
 - Expected: PASS。
+- Result: PASS。`pnpm test -- --run inbox feedback` 2 个测试文件、4 个测试通过；覆盖报告筛选、详情自动已读、Useful/Not Important/Wrong 反馈和 Wrong 原因必填；`pnpm typecheck` 与 `pnpm lint` 均通过。
 
 **步骤 4：提交（受 AUTO_COMMIT 控制）**
 - Commit message: `实现情报收件箱与反馈闭环`
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 执行后填写
-    pr: 执行后填写
-    changed_files: 执行后填写
+    commit: 待回写
+    pr: 未创建
+    changed_files: `apps/web/app/inbox/page.tsx`, `apps/web/app/reports/[id]/page.tsx`, `apps/web/app/api/reports/route.ts`, `apps/web/app/api/reports/[id]/route.ts`, `apps/web/app/api/reports/[id]/feedback/route.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/__tests__/inbox.test.ts`, `apps/web/__tests__/feedback.test.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T8: 集成验证与文档收尾
 
