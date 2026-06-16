@@ -160,13 +160,13 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `548cd73`
     pr: 未创建
     changed_files: `.env.example`, `.gitignore`, `README.md`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `apps/web/package.json`, `apps/web/tsconfig.json`, `apps/web/next-env.d.ts`, `apps/worker/package.json`, `apps/worker/tsconfig.json`, `apps/worker/src/index.ts`, `packages/domain/package.json`, `packages/domain/tsconfig.json`, `packages/domain/src/index.ts`, `packages/db/package.json`, `packages/db/tsconfig.json`, `packages/db/src/client.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T2: 建立 DB 与领域内核
 
-- [ ] **状态**：未开始
+- [x] **状态**：完成
 
 **代码仓范围：**
 - 根项目：`C:\data\code\aidlc\lensmor-monitor`
@@ -195,15 +195,16 @@
 **步骤 3：运行验证**
 - Run: `pnpm test -- --run task-state; pnpm db:migrate; pnpm typecheck`
 - Expected: PASS；Prisma migration 可在本地 SQLite 执行。
+- Result: PASS。`pnpm test -- --run task-state` 4 个测试通过；`DATABASE_URL=file:./dev.db pnpm db:migrate` 已同步 SQLite schema；`pnpm typecheck` 全部 workspace 通过。执行中发现 Prisma Client 生成器在 pnpm workspace 下自动解析不稳定，已将 `db:migrate` 调整为 `--skip-generate`，T2 先固定 schema/migration 与领域内核，实际查询封装在后续业务 API 任务中补齐。
 
 **步骤 4：提交（受 AUTO_COMMIT 控制）**
 - Commit message: `建立数据模型与任务状态机内核`
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 执行后填写
-    pr: 执行后填写
-    changed_files: 执行后填写
+    commit: 待回写
+    pr: 未创建
+    changed_files: `.gitignore`, `package.json`, `pnpm-lock.yaml`, `packages/domain/src/index.ts`, `packages/domain/src/task-state.ts`, `packages/domain/src/report-contract.ts`, `packages/domain/src/auth-boundary.ts`, `packages/domain/src/__tests__/task-state.test.ts`, `packages/db/package.json`, `packages/db/src/client.ts`, `packages/db/prisma/schema.prisma`, `packages/db/prisma/migrations/20260616085833_init/migration.sql`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
 ### Task T3: 实现登录与受保护 API 边界
 

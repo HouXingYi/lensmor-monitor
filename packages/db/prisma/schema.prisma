@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  profile        ProductProfile?
+  competitors    Competitor[]
+  tasks          CollectionTask[]
+  reports        AnalysisReport[]
+  reportReads    ReportRead[]
+  feedback       ReportFeedback[]
+}
+
+model ProductProfile {
+  id                  String   @id @default(cuid())
+  ownerId             String   @unique
+  role                String
+  productName         String
+  productUrl          String
+  oneLineDescription  String
+  targetAudience      String
+  coreSellingPoints   String
+  competitiveEdge     String
+  strategicGoal       String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  owner               User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model Competitor {
+  id          String              @id @default(cuid())
+  ownerId     String
+  name        String
+  mainDomain  String
+  logoUrl     String?
+  status      CompetitorStatus    @default(MONITORING)
+  links       CompetitorLink[]
+  snapshots   WebsiteSnapshot[]
+  tasks       CollectionTask[]
+  reports     AnalysisReport[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  owner       User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model CompetitorLink {
+  id            String     @id @default(cuid())
+  competitorId  String
+  label         String
+  url           String
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+model WebsiteSnapshot {
+  id            String          @id @default(cuid())
+  competitorId  String
+  sourceUrl     String
+  contentHash   String
+  contentText   String
+  capturedAt    DateTime        @default(now())
+  competitor    Competitor      @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  taskSnapshots TaskSnapshot[]
+}
+
+model CollectionTask {
+  id             String           @id @default(cuid())
+  ownerId        String
+  competitorId   String
+  triggerType    TaskTriggerType
+  status         TaskStatus       @default(QUEUED)
+  scheduleWindow String?
+  failureReason  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  completedAt    DateTime?
+  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  competitor     Competitor       @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  snapshots      TaskSnapshot[]
+  report         AnalysisReport?
+}
+
+model TaskSnapshot {
+  taskId      String
+  snapshotId  String
+  role        SnapshotRole
+  task        CollectionTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  snapshot    WebsiteSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, snapshotId, role])
+}
+
+model AnalysisReport {
+  id                  String           @id @default(cuid())
+  ownerId             String
+  competitorId         String
+  taskId              String           @unique
+  title               String
+  priority            ReportPriority
+  changeSummary       String
+  strategicIntent     String
+  recommendedActions  String
+  sourceUrl           String
+  createdAt           DateTime         @default(now())
+  owner               User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  competitor          Competitor       @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  task                CollectionTask   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reads               ReportRead[]
+  feedback            ReportFeedback[]
+}
+
+model ReportRead {
+  reportId  String
+  userId    String
+  readAt    DateTime       @default(now())
+  report    AnalysisReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([reportId, userId])
+}
+
+model ReportFeedback {
+  id          String         @id @default(cuid())
+  reportId    String
+  userId      String
+  type        FeedbackType
+  wrongReason WrongReason?
+  createdAt   DateTime       @default(now())
+  report      AnalysisReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum CompetitorStatus {
+  MONITORING
+  PAUSED
+  COLLECTING
+}
+
+enum TaskTriggerType {
+  MANUAL
+  SCHEDULED
+}
+
+enum TaskStatus {
+  QUEUED
+  COLLECTING
+  DIFFING
+  ANALYZING
+  COMPLETED
+  FAILED
+}
+
+enum SnapshotRole {
+  BEFORE
+  AFTER
+}
+
+enum ReportPriority {
+  URGENT
+  MEDIUM
+  LOW
+}
+
+enum FeedbackType {
+  USEFUL
+  WRONG
+  NOT_IMPORTANT
+}
+
+enum WrongReason {
+  INACCURATE_INFORMATION
+  IRRELEVANT_CONTENT
+  OUTDATED_DATA
+  DUPLICATE_INFORMATION
+  WRONG_STRATEGIC_INTENT
+  MISSING_KEY_CHANGE
+  TOO_NOISY
+  SOURCE_DATA_INACCURATE
+}

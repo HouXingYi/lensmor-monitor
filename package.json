@@ -8,8 +8,8 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "pnpm -r --if-present typecheck",
-    "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma --name init",
+    "db:generate": "pnpm --filter @lensmor/db db:generate",
+    "db:migrate": "pnpm --filter @lensmor/db db:migrate",
     "test:e2e": "vitest run apps/web/e2e"
   },
   "devDependencies": {
@@ -19,6 +19,9 @@
     "prisma": "^6.19.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.0.15"
+    "vitest": "^3.2.6"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
   }
 }
