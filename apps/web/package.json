@@ -12,12 +12,12 @@
   "dependencies": {
     "@lensmor/db": "workspace:*",
     "@lensmor/domain": "workspace:*",
+    "@lensmor/worker": "workspace:*",
     "next": "^16.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@lensmor/worker": "workspace:*",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3"
   }

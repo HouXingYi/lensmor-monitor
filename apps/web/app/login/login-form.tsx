@@ -41,7 +41,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <label className="login-field">
-        <span>Email</span>
+        <span>邮箱</span>
         <input
           autoComplete="email"
           inputMode="email"
@@ -52,7 +52,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         />
       </label>
       <label className="login-field">
-        <span>Password</span>
+        <span>密码</span>
         <input
           autoComplete="current-password"
           onChange={(event) => setPassword(event.target.value)}
@@ -63,7 +63,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       </label>
       {error ? <div className="login-error">{error}</div> : null}
       <button className="login-button" disabled={submitting} type="submit">
-        {submitting ? "Signing in..." : "Sign in"}
+        {submitting ? "登录中..." : "登录"}
       </button>
     </form>
   );

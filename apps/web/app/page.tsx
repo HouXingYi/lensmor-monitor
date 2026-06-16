@@ -1,8 +1,8 @@
-export default function HomePage() {
-  return (
-    <main>
-      <h1>Lensmor Monitor</h1>
-      <p>Competitor monitoring workspace.</p>
-    </main>
-  );
+import { redirect } from "next/navigation";
+
+import { hasCompletedOnboardingForPage, requirePageSession } from "../lib/page-session";
+
+export default async function HomePage() {
+  await requirePageSession();
+  redirect((await hasCompletedOnboardingForPage()) ? "/competitors" : "/onboarding");
 }

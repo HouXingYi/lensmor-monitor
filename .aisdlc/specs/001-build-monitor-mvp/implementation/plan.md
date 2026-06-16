@@ -440,6 +440,38 @@
     pr: 未创建
     changed_files: `README.md`, `.env.example`, `eslint.config.mjs`, `apps/worker/package.json`, `apps/web/package.json`, `pnpm-lock.yaml`, `apps/web/e2e/mvp-flow.spec.ts`, `apps/web/__tests__/mvp-flow-helper.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
+### I2 补充批次：补齐前端业务页面闭环
+
+- [x] **状态**：完成
+
+**触发原因：**
+- 人工验收发现登录后 `/`、`/onboarding`、`/competitors`、`/competitors/[id]`、`/inbox`、`/reports/[id]` 多数仍是静态占位，虽 API 测试通过但前端业务不可操作。
+
+**修改点：**
+- 根路由按 onboarding 状态分流到 `/onboarding` 或 `/competitors`。
+- `/onboarding` 补齐角色、产品信息、推荐/手动竞品的可提交表单。
+- `/competitors` 补齐竞品列表、新增、暂停/恢复、删除和空状态。
+- `/competitors/[id]` 补齐详情、编辑、关联链接、任务状态、手动刷新、最新报告入口。
+- `/api/tasks` 补齐 mock 采集执行、任务存储、报告生成；`/api/tasks/[id]` 返回真实任务状态。
+- `/inbox` 补齐报告列表、已读状态、竞品/优先级/日期筛选。
+- `/reports/[id]` 补齐报告正文、自动已读、Useful/Wrong/Not Important 反馈；Wrong 原因必填。
+- 补齐应用导航、登出入口、业务卡片/状态/表单样式。
+- 追加前端全中文界面：页面文案、表单提示、状态标签、筛选项、反馈原因、API 可见错误和 mock 报告内容均改为中文。
+- 修复 onboarding 后 `/competitors` 空列表：`mvp-store` 改为 `globalThis` 单例，确保 API route 与页面渲染共享同一份 MVP 内存数据。
+
+**验证：**
+- Result: PASS。`pnpm test` 9 个测试文件、22 个测试通过。
+- Result: PASS。`pnpm typecheck` 全部 workspace 通过。
+- Result: PASS。`pnpm lint` 通过。
+- Result: PASS。`pnpm test:e2e` 1 个 e2e smoke 测试通过。
+
+**审计信息：**
+- repo: `root`
+  branch: `001-build-monitor-mvp`
+  commit: 未提交（本次对话用户未要求 commit）
+  pr: 未创建
+  changed_files: `apps/worker/package.json`, `apps/worker/src/litellm-client.ts`, `apps/web/__tests__/auth-boundary.test.ts`, `apps/web/__tests__/onboarding.test.ts`, `apps/web/app/app-shell.tsx`, `apps/web/app/layout.tsx`, `apps/web/app/page.tsx`, `apps/web/app/login/page.tsx`, `apps/web/app/login/login-form.tsx`, `apps/web/app/onboarding/page.tsx`, `apps/web/app/onboarding/onboarding-form.tsx`, `apps/web/app/competitors/page.tsx`, `apps/web/app/competitors/competitors-client.tsx`, `apps/web/app/competitors/[id]/page.tsx`, `apps/web/app/competitors/[id]/competitor-detail-client.tsx`, `apps/web/app/inbox/page.tsx`, `apps/web/app/reports/[id]/page.tsx`, `apps/web/app/reports/[id]/report-feedback-form.tsx`, `apps/web/app/api/auth/login/route.ts`, `apps/web/app/api/auth/logout/route.ts`, `apps/web/app/api/onboarding/route.ts`, `apps/web/app/api/competitors/route.ts`, `apps/web/app/api/competitors/[id]/route.ts`, `apps/web/app/api/reports/[id]/route.ts`, `apps/web/app/api/reports/[id]/feedback/route.ts`, `apps/web/app/api/tasks/route.ts`, `apps/web/app/api/tasks/[id]/route.ts`, `apps/web/lib/api-auth.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/lib/page-session.ts`, `apps/web/lib/session.ts`, `apps/web/app/globals.css`, `apps/web/package.json`, `pnpm-lock.yaml`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
+
 ## I1-DoD 自检
 
 - [x] 计划范围与 `requirements/*`、`design/*` 一致且可追溯。

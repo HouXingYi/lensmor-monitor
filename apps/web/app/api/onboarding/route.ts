@@ -1,5 +1,6 @@
 import { requireSession } from "../../../lib/api-auth";
 import { createCompetitor, saveProductProfile } from "../../../lib/mvp-store";
+import { createOnboardingCookie } from "../../../lib/session";
 
 export const runtime = "nodejs";
 
@@ -40,24 +41,24 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as OnboardingBody;
 
   if (!body.role) {
-    return Response.json({ error: "Role is required" }, { status: 400 });
+    return Response.json({ error: "请选择角色。" }, { status: 400 });
   }
 
   if (!hasRequiredProductFields(body.product)) {
-    return Response.json({ error: "Product information is incomplete" }, { status: 400 });
+    return Response.json({ error: "产品信息不完整。" }, { status: 400 });
   }
 
   if (!URL.canParse(body.product.url)) {
-    return Response.json({ error: "Product URL is invalid" }, { status: 400 });
+    return Response.json({ error: "产品 URL 无效。" }, { status: 400 });
   }
 
   if (!body.competitors || body.competitors.length === 0) {
-    return Response.json({ error: "At least one competitor is required" }, { status: 400 });
+    return Response.json({ error: "请至少添加一个竞品。" }, { status: 400 });
   }
 
   const invalidCompetitor = body.competitors.find((competitor) => !competitor.name || !competitor.mainDomain);
   if (invalidCompetitor) {
-    return Response.json({ error: "Competitor name and domain are required" }, { status: 400 });
+    return Response.json({ error: "竞品名称和主域名都必填。" }, { status: 400 });
   }
 
   const profile = saveProductProfile({
@@ -74,5 +75,12 @@ export async function POST(request: Request): Promise<Response> {
     }),
   );
 
-  return Response.json({ profile, competitors });
+  return Response.json(
+    { profile, competitors },
+    {
+      headers: {
+        "Set-Cookie": createOnboardingCookie(),
+      },
+    },
+  );
 }

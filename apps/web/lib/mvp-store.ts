@@ -1,4 +1,4 @@
-import { type AnalysisReportDraft, type ReportPriority } from "@lensmor/domain";
+import { type AnalysisReportDraft, type CollectionTask, type ReportPriority } from "@lensmor/domain";
 
 export type CompetitorStatus = "monitoring" | "paused" | "collecting";
 export type FeedbackType = "useful" | "wrong" | "not_important";
@@ -47,6 +47,11 @@ export interface ReportRecord extends AnalysisReportDraft {
   createdAt: string;
 }
 
+export interface TaskRecord extends CollectionTask {
+  ownerId: string;
+  reportId?: string;
+}
+
 export interface ReportFeedbackRecord {
   id: string;
   ownerId: string;
@@ -56,16 +61,39 @@ export interface ReportFeedbackRecord {
   createdAt: string;
 }
 
-const productProfiles = new Map<string, ProductProfile>();
-const competitors = new Map<string, CompetitorRecord>();
-const reports = new Map<string, ReportRecord>();
-const readReports = new Set<string>();
-const feedback = new Map<string, ReportFeedbackRecord>();
+interface MvpStoreState {
+  productProfiles: Map<string, ProductProfile>;
+  competitors: Map<string, CompetitorRecord>;
+  reports: Map<string, ReportRecord>;
+  tasks: Map<string, TaskRecord>;
+  readReports: Set<string>;
+  feedback: Map<string, ReportFeedbackRecord>;
+}
+
+declare global {
+  // Keep the MVP in-memory store shared across Next.js route and page module instances in dev.
+  // This is still intentionally ephemeral and resets when the server restarts.
+  var __lensmorMvpStore: MvpStoreState | undefined;
+}
+
+const store =
+  globalThis.__lensmorMvpStore ??
+  (globalThis.__lensmorMvpStore = {
+    productProfiles: new Map<string, ProductProfile>(),
+    competitors: new Map<string, CompetitorRecord>(),
+    reports: new Map<string, ReportRecord>(),
+    tasks: new Map<string, TaskRecord>(),
+    readReports: new Set<string>(),
+    feedback: new Map<string, ReportFeedbackRecord>(),
+  });
+
+const { productProfiles, competitors, reports, tasks, readReports, feedback } = store;
 
 export function resetMvpStore(): void {
   productProfiles.clear();
   competitors.clear();
   reports.clear();
+  tasks.clear();
   readReports.clear();
   feedback.clear();
 }
@@ -84,7 +112,7 @@ export function createCompetitor(
   input: Omit<CompetitorRecord, "id" | "ownerId" | "status"> & { status?: CompetitorStatus },
 ): CompetitorRecord {
   if (input.links.length > 10) {
-    throw new Error("A competitor can have at most 10 associated links");
+    throw new Error("每个竞品最多只能添加 10 条关联链接。");
   }
 
   const competitor: CompetitorRecord = {
@@ -120,7 +148,7 @@ export function updateCompetitor(
 
   const nextLinks = patch.links ?? competitor.links;
   if (nextLinks.length > 10) {
-    throw new Error("A competitor can have at most 10 associated links");
+    throw new Error("每个竞品最多只能添加 10 条关联链接。");
   }
 
   const next: CompetitorRecord = {
@@ -148,6 +176,28 @@ export function createReport(ownerId: string, draft: AnalysisReportDraft): Repor
   };
   reports.set(report.id, report);
   return report;
+}
+
+export function saveTask(ownerId: string, task: CollectionTask, reportId?: string): TaskRecord {
+  const record: TaskRecord = {
+    ...task,
+    ownerId,
+    ...(reportId ? { reportId } : {}),
+  };
+  tasks.set(record.id, record);
+  return record;
+}
+
+export function getTask(ownerId: string, id: string): TaskRecord | undefined {
+  const task = tasks.get(id);
+  if (!task || task.ownerId !== ownerId) return undefined;
+  return task;
+}
+
+export function listTasksForCompetitor(ownerId: string, competitorId: string): TaskRecord[] {
+  return Array.from(tasks.values())
+    .filter((task) => task.ownerId === ownerId && task.competitorId === competitorId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export interface ReportFilters {
@@ -193,12 +243,12 @@ export function createFeedback(
   input: { type: FeedbackType; wrongReason?: WrongReason },
 ): ReportFeedbackRecord {
   if (input.type === "wrong" && !input.wrongReason) {
-    throw new Error("wrongReason is required for wrong feedback");
+    throw new Error("提交错误反馈时必须选择原因。");
   }
 
   const report = getReport(ownerId, reportId);
   if (!report) {
-    throw new Error("Report not found");
+    throw new Error("报告不存在。");
   }
 
   const record: ReportFeedbackRecord = {

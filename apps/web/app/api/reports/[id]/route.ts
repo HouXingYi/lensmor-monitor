@@ -14,7 +14,7 @@ export async function GET(request: Request, context: RouteContext): Promise<Resp
   const { id } = await context.params;
   const report = getReport(session.userId, id);
   if (!report) {
-    return Response.json({ error: "Report not found" }, { status: 404 });
+    return Response.json({ error: "报告不存在。" }, { status: 404 });
   }
 
   markReportRead(session.userId, id);

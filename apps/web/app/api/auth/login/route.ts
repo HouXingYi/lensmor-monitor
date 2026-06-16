@@ -17,7 +17,7 @@ export async function POST(request: Request): Promise<Response> {
   const password = body.password ?? "";
 
   if (!validateCredentials(email, password)) {
-    return Response.json({ error: "Invalid credentials" }, { status: 401 });
+    return Response.json({ error: "账号或密码不正确。" }, { status: 401 });
   }
 
   const cookie = await createSessionCookie(createSingleUserPrincipal(email));

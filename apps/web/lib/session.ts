@@ -1,6 +1,7 @@
 import { type SessionPrincipal } from "@lensmor/domain";
 
 const sessionCookieName = "lensmor_session";
+const onboardingCookieName = "lensmor_onboarded";
 const singleUserId = "single-user";
 
 function getSessionSecret(): string {
@@ -67,6 +68,14 @@ export function clearSessionCookie(): string {
   return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
+export function createOnboardingCookie(): string {
+  return `${onboardingCookieName}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`;
+}
+
+export function clearOnboardingCookie(): string {
+  return `${onboardingCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
 export async function readSessionFromCookieHeader(
   cookieHeader: string | null,
 ): Promise<SessionPrincipal | null> {
@@ -91,6 +100,10 @@ export function createSingleUserPrincipal(email: string): SessionPrincipal {
     userId: singleUserId,
     email,
   };
+}
+
+export function hasCompletedOnboarding(cookieHeader: string | null): boolean {
+  return parseCookies(cookieHeader).get(onboardingCookieName) === "1";
 }
 
 export function isProtectedPath(pathname: string): boolean {

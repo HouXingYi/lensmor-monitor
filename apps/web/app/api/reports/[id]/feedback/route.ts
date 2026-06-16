@@ -24,7 +24,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   const body = (await request.json().catch(() => ({}))) as FeedbackBody;
   const type = parseFeedbackType(body.type);
   if (!type) {
-    return Response.json({ error: "Invalid feedback type" }, { status: 400 });
+    return Response.json({ error: "反馈类型无效。" }, { status: 400 });
   }
 
   try {
@@ -35,6 +35,6 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     });
     return Response.json(feedback, { status: 201 });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Invalid feedback" }, { status: 400 });
+    return Response.json({ error: error instanceof Error ? error.message : "反馈无效。" }, { status: 400 });
   }
 }

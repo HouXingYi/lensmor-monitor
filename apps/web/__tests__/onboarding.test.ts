@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { POST as completeOnboarding } from "../app/api/onboarding/route";
-import { createSessionCookie } from "../lib/session";
+import { createSessionCookie, hasCompletedOnboarding } from "../lib/session";
 import { getProductProfile, listCompetitors, resetMvpStore } from "../lib/mvp-store";
 
 async function sessionCookie() {
@@ -35,6 +35,7 @@ describe("onboarding API", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(hasCompletedOnboarding(response.headers.get("set-cookie"))).toBe(true);
     expect(getProductProfile("single-user")?.role).toBe("Product Manager");
     expect(listCompetitors("single-user")).toHaveLength(1);
     expect(listCompetitors("single-user")[0]?.status).toBe("monitoring");

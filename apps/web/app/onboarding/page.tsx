@@ -1,32 +1,17 @@
-const roles = [
-  "Product Marketing Manager",
-  "Product Manager",
-  "Marketing Manager",
-  "Founder",
-  "Investor",
-  "Other",
-];
+import { OnboardingForm } from "./onboarding-form";
 
 export default function OnboardingPage() {
   return (
-    <main>
-      <h1>Set up Lensmor Monitor</h1>
-      <section>
-        <h2>Step 1: Choose your role</h2>
-        <ul>
-          {roles.map((role) => (
-            <li key={role}>{role}</li>
-          ))}
-        </ul>
-      </section>
-      <section>
-        <h2>Step 2: Add your product context</h2>
-        <p>Name, URL, positioning, audience, selling points, edge, and strategic goal are required.</p>
-      </section>
-      <section>
-        <h2>Step 3: Import competitors</h2>
-        <p>Select or add at least one mock competitor to start monitoring.</p>
-      </section>
+    <main className="onboarding-shell">
+      <header className="onboarding-header">
+        <div className="login-kicker">工作台初始化</div>
+        <h1>设置 Lensmor Monitor</h1>
+        <p>
+          填写你的角色、自有产品信息，并至少导入一个模拟竞品，
+          让监控工作台能够生成更贴近业务语境的情报。
+        </p>
+      </header>
+      <OnboardingForm />
     </main>
   );
 }

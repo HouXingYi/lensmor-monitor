@@ -1,8 +1,20 @@
-export default function CompetitorsPage() {
+import { redirect } from "next/navigation";
+
+import { AppShell } from "../app-shell";
+import { listCompetitors } from "../../lib/mvp-store";
+import { hasCompletedOnboardingForPage, requirePageSession } from "../../lib/page-session";
+import { CompetitorsClient } from "./competitors-client";
+
+export default async function CompetitorsPage() {
+  const session = await requirePageSession();
+  if (!(await hasCompletedOnboardingForPage())) {
+    redirect("/onboarding");
+  }
+  const competitors = listCompetitors(session.userId);
+
   return (
-    <main>
-      <h1>Competitors</h1>
-      <p>Manage mock competitors, monitoring status, and associated links.</p>
-    </main>
+    <AppShell>
+      <CompetitorsClient initialCompetitors={competitors} />
+    </AppShell>
   );
 }

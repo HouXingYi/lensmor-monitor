@@ -11,6 +11,25 @@ export interface LiteLLMClient {
   generateReport(input: LiteLLMReportInput): Promise<AnalysisReportDraft>;
 }
 
+const changeTypeLabels: Record<string, string> = {
+  copy: "文案",
+  pricing: "价格",
+  feature: "功能",
+  layout: "布局",
+  cta: "行动按钮",
+  noise: "噪音",
+};
+
+function localizePromptFact(fact: string): string {
+  const match = /^(?<type>\w+): changed from "(?<before>.*)" to "(?<after>.*)"$/.exec(fact);
+  if (!match?.groups) return fact;
+  const { type: rawType, before, after } = match.groups;
+  if (!rawType || before === undefined || after === undefined) return fact;
+
+  const type = changeTypeLabels[rawType] ?? rawType;
+  return `${type}从「${before}」改为「${after}」`;
+}
+
 export function createMockLiteLLMClient(options: { fail?: boolean } = {}): LiteLLMClient {
   return {
     async generateReport(input) {
@@ -20,13 +39,13 @@ export function createMockLiteLLMClient(options: { fail?: boolean } = {}): LiteL
 
       return {
         competitorId: input.competitorId,
-        title: `${input.competitorName} website change detected`,
+        title: `${input.competitorName} 网站变化提醒`,
         priority: "medium",
         changedAt: new Date().toISOString(),
         sourceUrl: input.sourceUrl,
-        changeSummary: input.promptFacts,
-        strategicIntent: "Competitor is adjusting conversion messaging.",
-        recommendedActions: ["Review your own positioning and CTA."],
+        changeSummary: input.promptFacts.map(localizePromptFact),
+        strategicIntent: "竞品正在调整转化路径和核心表达，可能希望提升销售线索质量或强化定位。",
+        recommendedActions: ["复盘自有产品的定位、首屏文案和 CTA，判断是否需要跟进优化。"],
       };
     },
   };
@@ -53,7 +72,7 @@ export function createLiteLLMClient(): LiteLLMClient {
           messages: [
             {
               role: "system",
-              content: "Generate a concise competitor website Analysis Report as JSON.",
+              content: "请用中文生成一份简洁的竞品网站变化分析报告，并以 JSON 返回。",
             },
             {
               role: "user",

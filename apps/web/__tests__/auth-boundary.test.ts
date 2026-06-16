@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { POST as login } from "../app/api/auth/login/route";
+import { POST as logout } from "../app/api/auth/logout/route";
 import {
+  clearOnboardingCookie,
   createSessionCookie,
   isProtectedPath,
   readSessionFromCookieHeader,
@@ -48,6 +50,14 @@ describe("auth boundary", () => {
     expect(success.status).toBe(200);
     expect(success.headers.get("set-cookie")).toContain("lensmor_session=");
     expect(failure.status).toBe(401);
+  });
+
+  it("clears both session and onboarding cookies on logout", async () => {
+    const response = await logout();
+    const setCookie = response.headers.getSetCookie();
+
+    expect(setCookie).toContain("lensmor_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
+    expect(setCookie).toContain(clearOnboardingCookie());
   });
 
   it("treats product routes and APIs as protected paths", () => {
