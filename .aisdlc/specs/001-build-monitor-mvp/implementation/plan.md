@@ -436,7 +436,7 @@
 - 审计信息：
   - repo: `root`
     branch: `001-build-monitor-mvp`
-    commit: 待回写
+    commit: `4a6f695`
     pr: 未创建
     changed_files: `README.md`, `.env.example`, `eslint.config.mjs`, `apps/worker/package.json`, `apps/web/package.json`, `pnpm-lock.yaml`, `apps/web/e2e/mvp-flow.spec.ts`, `apps/web/__tests__/mvp-flow-helper.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
