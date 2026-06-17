@@ -6,7 +6,7 @@ import { GET as getReport } from "../app/api/reports/[id]/route";
 import { POST as createTask } from "../app/api/tasks/route";
 import { GET as listReports } from "../app/api/reports/route";
 import { createSessionCookie } from "../lib/session";
-import { resetMvpStore } from "../lib/mvp-store";
+import { hydrateCompetitors, resetMvpStore, type CompetitorRecord } from "../lib/mvp-store";
 import { rotateMockPages } from "../lib/mock-pages";
 
 afterEach(() => {
@@ -55,7 +55,7 @@ describe("competitors API", () => {
         }),
       }),
     );
-    const createdBody = (await created.json()) as { id: string; status: string };
+    const createdBody = (await created.json()) as CompetitorRecord;
 
     expect(created.status).toBe(201);
     expect(createdBody.status).toBe("monitoring");
@@ -88,6 +88,16 @@ describe("competitors API", () => {
       { params: { id: createdBody.id } },
     );
     expect(deleted.status).toBe(204);
+
+    hydrateCompetitors("single-user", [createdBody]);
+
+    const listedAfterDelete = await GET(
+      new Request("http://localhost/api/competitors", {
+        headers: { cookie: `${cookie}; ${deleted.headers.get("set-cookie") ?? ""}` },
+      }),
+    );
+    const listBodyAfterDelete = (await listedAfterDelete.json()) as { competitors: unknown[] };
+    expect(listBodyAfterDelete.competitors).toHaveLength(0);
   });
 
   it("hydrates competitors from the persistence cookie after memory resets", async () => {

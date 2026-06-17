@@ -145,6 +145,16 @@ export function hydrateCompetitors(ownerId: string, records: CompetitorRecord[])
   }
 }
 
+export function replaceCompetitors(ownerId: string, records: CompetitorRecord[]): void {
+  for (const competitor of competitors.values()) {
+    if (competitor.ownerId === ownerId) {
+      competitors.delete(competitor.id);
+    }
+  }
+
+  hydrateCompetitors(ownerId, records);
+}
+
 export function getCompetitor(ownerId: string, id: string): CompetitorRecord | undefined {
   const competitor = competitors.get(id);
   if (!competitor || competitor.ownerId !== ownerId) return undefined;

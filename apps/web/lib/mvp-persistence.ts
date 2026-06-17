@@ -5,6 +5,7 @@ import {
   listCompetitors,
   listReports,
   listTasksForCompetitor,
+  replaceCompetitors,
   type CompetitorRecord,
   type ReportRecord,
   type TaskRecord,
@@ -28,6 +29,10 @@ function parseCookies(cookieHeader: string | null): Map<string, string> {
   }
 
   return cookies;
+}
+
+function hasCookie(cookieHeader: string | null, name: string): boolean {
+  return parseCookies(cookieHeader).has(name);
 }
 
 function isCompetitorRecord(value: unknown): value is CompetitorRecord {
@@ -186,7 +191,9 @@ export function readPersistedTasks(cookieHeader: string | null, ownerId: string)
 }
 
 export function hydrateCompetitorsFromCookie(ownerId: string, cookieHeader: string | null): void {
-  hydrateCompetitors(ownerId, readPersistedCompetitors(cookieHeader, ownerId));
+  if (hasCookie(cookieHeader, competitorsCookieName)) {
+    replaceCompetitors(ownerId, readPersistedCompetitors(cookieHeader, ownerId));
+  }
 }
 
 export function hydrateReportsFromCookie(ownerId: string, cookieHeader: string | null): void {
