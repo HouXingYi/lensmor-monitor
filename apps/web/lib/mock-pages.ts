@@ -703,29 +703,10 @@ export function buildDiffScenarioFromMockPage(
   };
 }
 
-export async function fetchMockPageSnapshot(origin: string, target: MockPageTarget): Promise<MockPageSnapshot> {
-  if (process.env.NODE_ENV === "test") {
-    const snapshot = getMockPageSnapshot(target.site, target.page);
-    if (!snapshot) throw new Error("Mock page not found");
-    return snapshot;
+export async function fetchMockPageSnapshot(_origin: string, target: MockPageTarget): Promise<MockPageSnapshot> {
+  const snapshot = getMockPageSnapshot(target.site, target.page);
+  if (!snapshot) {
+    throw new Error(`Mock page not found: ${target.site}/${target.page}`);
   }
-
-  const url = new URL(`/mock-pages/${target.site}/${target.page}`, origin);
-  const response = await fetch(url, { headers: { Accept: "text/html" }, cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Mock page fetch failed with ${response.status}`);
-  }
-
-  const html = await response.text();
-  const match = /<script id="lensmor-mock-page-data" type="application\/json">(?<json>.*?)<\/script>/s.exec(html);
-  const json = match?.groups?.json;
-  if (!json) {
-    throw new Error("Mock page metadata is missing");
-  }
-
-  const snapshot = JSON.parse(json) as Omit<MockPageSnapshot, "html">;
-  return {
-    ...snapshot,
-    html,
-  };
+  return snapshot;
 }
