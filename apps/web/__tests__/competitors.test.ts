@@ -4,8 +4,10 @@ import { GET as getCompetitor, PATCH, DELETE } from "../app/api/competitors/[id]
 import { GET, POST } from "../app/api/competitors/route";
 import { GET as getReport } from "../app/api/reports/[id]/route";
 import { POST as createTask } from "../app/api/tasks/route";
+import { GET as listReports } from "../app/api/reports/route";
 import { createSessionCookie } from "../lib/session";
 import { resetMvpStore } from "../lib/mvp-store";
+import { rotateMockPages } from "../lib/mock-pages";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -15,6 +17,26 @@ afterEach(() => {
 async function sessionCookie() {
   vi.stubEnv("SESSION_SECRET", "test-secret");
   return createSessionCookie({ userId: "single-user", email: "demo@lensmor.local" });
+}
+
+function createLiteLLMResponse(index: number) {
+  const longText = `第 ${index} 次采集发现竞品正在调整定价、CTA、客户证明和安全合规表达。`.repeat(20);
+  return Response.json({
+    choices: [
+      {
+        message: {
+          content: JSON.stringify({
+            title: `Acme AI 第 ${index} 次网站变化提醒`,
+            priority: index % 2 === 0 ? "urgent" : "medium",
+            changedAt: new Date(Date.now() + index).toISOString(),
+            changeSummary: [longText, longText, longText, longText, longText],
+            strategicIntent: longText,
+            recommendedActions: [longText, longText, longText, longText, longText],
+          }),
+        },
+      },
+    ],
+  });
 }
 
 describe("competitors API", () => {
@@ -203,6 +225,60 @@ describe("competitors API", () => {
 
     expect(reportResponse.status).toBe(200);
     expect(((await reportResponse.json()) as { title: string }).title).toBe("Acme AI 网站变化提醒");
+  });
+
+  it("keeps automatic collection reports within the cookie limit after an existing manual report", async () => {
+    resetMvpStore();
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LITELLM_BASE_URL", "https://litellm.test");
+    vi.stubEnv("LITELLM_API_KEY", "test-key");
+    let requestCount = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        requestCount += 1;
+        return createLiteLLMResponse(requestCount);
+      }),
+    );
+    const cookie = await sessionCookie();
+
+    const created = await POST(
+      new Request("http://localhost/api/competitors", {
+        method: "POST",
+        headers: { cookie },
+        body: JSON.stringify({ name: "Acme AI", mainDomain: "acme-ai.mock", links: [] }),
+      }),
+    );
+    const createdBody = (await created.json()) as { id: string };
+    const firstTaskResponse = await createTask(
+      new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { cookie: `${cookie}; ${created.headers.get("set-cookie") ?? ""}` },
+        body: JSON.stringify({ competitorId: createdBody.id, triggerType: "manual" }),
+      }),
+    );
+    rotateMockPages();
+    const secondTaskResponse = await createTask(
+      new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { cookie: `${cookie}; ${firstTaskResponse.headers.getSetCookie().join("; ")}` },
+        body: JSON.stringify({ competitorId: createdBody.id, triggerType: "scheduled" }),
+      }),
+    );
+    const reportsCookie = secondTaskResponse.headers
+      .getSetCookie()
+      .find((item) => item.startsWith("lensmor_reports="));
+    resetMvpStore();
+
+    const listed = await listReports(
+      new Request("http://localhost/api/reports", {
+        headers: { cookie: `${cookie}; ${secondTaskResponse.headers.getSetCookie().join("; ")}` },
+      }),
+    );
+    const listBody = (await listed.json()) as { reports: Array<{ title: string }> };
+
+    expect(reportsCookie?.split(";")[0]?.length).toBeLessThanOrEqual(4096);
+    expect(listBody.reports[0]?.title).toBe("Acme AI 第 2 次网站变化提醒");
   });
 
   it("rejects more than 10 associated links", async () => {

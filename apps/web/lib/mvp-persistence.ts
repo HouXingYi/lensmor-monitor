@@ -14,7 +14,8 @@ const competitorsCookieName = "lensmor_competitors";
 const reportsCookieName = "lensmor_reports";
 const tasksCookieName = "lensmor_tasks";
 const cookieMaxAgeSeconds = 60 * 60 * 24 * 7;
-const maxPersistedReports = 3;
+const maxCookieValueLength = 3600;
+const maxPersistedReports = 5;
 const maxPersistedTasks = 5;
 
 function parseCookies(cookieHeader: string | null): Map<string, string> {
@@ -120,6 +121,31 @@ function createCookie(name: string, value: unknown): string {
   ].join("; ");
 }
 
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1)}...`;
+}
+
+function compactReportForCookie(report: ReportRecord): ReportRecord {
+  return {
+    ...report,
+    title: truncateText(report.title, 120),
+    changeSummary: report.changeSummary.slice(0, 3).map((item) => truncateText(item, 90)),
+    strategicIntent: truncateText(report.strategicIntent, 220),
+    recommendedActions: report.recommendedActions.slice(0, 3).map((item) => truncateText(item, 90)),
+  };
+}
+
+function fitCookieItems<T>(items: T[]): T[] {
+  for (let length = items.length; length > 0; length -= 1) {
+    const candidate = items.slice(0, length);
+    if (encodeCookieJson(candidate).length <= maxCookieValueLength) {
+      return candidate;
+    }
+  }
+  return [];
+}
+
 export function readPersistedCompetitors(cookieHeader: string | null, ownerId: string): CompetitorRecord[] {
   const raw = parseCookies(cookieHeader).get(competitorsCookieName);
   if (!raw) return [];
@@ -182,7 +208,10 @@ export function createCompetitorsCookie(ownerId: string): string {
 }
 
 export function createReportsCookie(ownerId: string): string {
-  return createCookie(reportsCookieName, listReports(ownerId).slice(0, maxPersistedReports));
+  const reports = listReports(ownerId)
+    .slice(0, maxPersistedReports)
+    .map(compactReportForCookie);
+  return createCookie(reportsCookieName, fitCookieItems(reports));
 }
 
 export function createTasksCookie(ownerId: string): string {
