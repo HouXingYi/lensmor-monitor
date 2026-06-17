@@ -13,8 +13,19 @@ export interface LiteLLMClient {
   generateReport(input: LiteLLMReportInput): Promise<AnalysisReportDraft>;
 }
 
+export interface LiteLLMPromptTrace {
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+export interface LiteLLMClientOptions {
+  onPrompt?: (prompt: LiteLLMPromptTrace) => void;
+}
+
 const defaultLiteLLMModel = "claude-sonnet-4-6";
 const localEnvFiles = [".env.local", ".env"];
+const reportSystemPrompt =
+  "你是 Lensmor Monitor 的竞品情报分析师。只返回一个 JSON 对象，不要 Markdown，不要解释。字段必须为 title、priority、changedAt、changeSummary、strategicIntent、recommendedActions。priority 只能是 urgent、medium、low。changeSummary 和 recommendedActions 必须是中文字符串数组。";
 
 const changeTypeLabels: Record<string, string> = {
   copy: "文案",
@@ -22,17 +33,35 @@ const changeTypeLabels: Record<string, string> = {
   feature: "功能",
   layout: "布局",
   cta: "行动按钮",
+  audience: "目标客群",
+  proof: "客户证明",
+  integration: "集成能力",
+  security: "安全合规",
+  enterprise: "企业方案",
+  promotion: "促销活动",
   noise: "噪音",
 };
 
 function localizePromptFact(fact: string): string {
-  const match = /^(?<type>\w+): changed from "(?<before>.*)" to "(?<after>.*)"$/.exec(fact);
+  const match = /^(?<type>\w+)(?: (?<selector>.*?))?: changed from "(?<before>.*)" to "(?<after>.*)"$/.exec(fact);
   if (!match?.groups) return fact;
-  const { type: rawType, before, after } = match.groups;
+  const { type: rawType, selector, before, after } = match.groups;
   if (!rawType || before === undefined || after === undefined) return fact;
 
   const type = changeTypeLabels[rawType] ?? rawType;
-  return `${type}从「${before}」改为「${after}」`;
+  const location = selector ? `（${selector}）` : "";
+  return `${type}${location}从「${before}」改为「${after}」`;
+}
+
+function buildMockChangeSummary(input: LiteLLMReportInput): string[] {
+  const summaries = input.promptFacts.map(localizePromptFact).slice(0, 6);
+  if (summaries.length < 3) {
+    summaries.push(`${input.competitorName} 本次变化集中在关键转化信息，值得结合页面上下文继续观察。`);
+  }
+  if (summaries.length < 3) {
+    summaries.push("变化涉及用户决策路径中的可见内容，可能影响访客对价值和下一步动作的判断。");
+  }
+  return summaries;
 }
 
 export function createMockLiteLLMClient(options: { fail?: boolean } = {}): LiteLLMClient {
@@ -42,15 +71,23 @@ export function createMockLiteLLMClient(options: { fail?: boolean } = {}): LiteL
         throw new Error("liteLLM mock failure");
       }
 
+      const changeSummary = buildMockChangeSummary(input);
+
       return {
         competitorId: input.competitorId,
         title: `${input.competitorName} 网站变化提醒`,
         priority: "medium",
         changedAt: new Date().toISOString(),
         sourceUrl: input.sourceUrl,
-        changeSummary: input.promptFacts.map(localizePromptFact),
-        strategicIntent: "竞品正在调整转化路径和核心表达，可能希望提升销售线索质量或强化定位。",
-        recommendedActions: ["复盘自有产品的定位、首屏文案和 CTA，判断是否需要跟进优化。"],
+        changeSummary,
+        strategicIntent:
+          "竞品本次不是单点微调，而是在页面表达、转化入口和价值证明之间做组合式调整。可能意图是提高高意向线索占比、强化特定客群的购买理由，并把产品能力包装成更容易被销售或管理层理解的竞争优势。",
+        recommendedActions: [
+          "对照自有页面检查首屏文案、价格表达和主 CTA 是否仍然清晰有力。",
+          "把本次变化拆成定位、转化、产品能力三个维度，评估哪些变化可能影响近期销售沟通。",
+          "让产品、市场和销售各给出一条应对动作，避免只停留在页面观测层面。",
+          "下一轮监控重点关注这些变化是否继续扩展到产品页、定价页或客户案例页。",
+        ],
       };
     },
   };
@@ -136,7 +173,7 @@ function readRuntimeEnv(key: string): string | undefined {
   return process.env[key] || readLocalEnvValue(key);
 }
 
-export function createLiteLLMClient(): LiteLLMClient {
+export function createLiteLLMClient(options: LiteLLMClientOptions = {}): LiteLLMClient {
   return {
     async generateReport(input) {
       const baseUrl = readRuntimeEnv("LITELLM_BASE_URL");
@@ -151,6 +188,32 @@ export function createLiteLLMClient(): LiteLLMClient {
         throw new Error(`liteLLM configuration is missing: ${missing.join(", ")}`);
       }
 
+      const userPrompt = JSON.stringify({
+        competitorName: input.competitorName,
+        sourceUrl: input.sourceUrl,
+        facts: input.promptFacts,
+        writingRequirements: {
+          changeSummary: "输出 3-6 条中文要点，覆盖主变化和次变化；不要只复述 facts，要补充对业务含义的简短解释。",
+          strategicIntent:
+            "输出一段 120-220 字中文分析，包含可能意图、影响对象、竞争含义；可以有推断，但必须基于 facts。",
+          recommendedActions: "输出 3-5 条具体可执行建议，分别覆盖产品、市场、销售或后续监控动作。",
+          style: "具体、克制、信息密度高，避免模板化套话。",
+        },
+        outputExample: {
+          title: "竞品关键页面发生变化",
+          priority: "medium",
+          changedAt: new Date().toISOString(),
+          changeSummary: [
+            "用一句中文概括一个事实变化，并点出它可能影响的页面目标",
+            "用一句中文概括另一个变化，说明它和主变化之间的关系",
+            "用一句中文补充次要但值得观察的变化",
+          ],
+          strategicIntent: "用一段更完整的中文推断可能战略意图、影响对象和竞争含义。",
+          recommendedActions: ["给出一个产品侧动作", "给出一个市场侧动作", "给出一个销售或后续监控动作"],
+        },
+      });
+      options.onPrompt?.({ systemPrompt: reportSystemPrompt, userPrompt });
+
       const response = await fetch(chatCompletionsUrl(baseUrl), {
         method: "POST",
         headers: {
@@ -159,28 +222,15 @@ export function createLiteLLMClient(): LiteLLMClient {
         },
         body: JSON.stringify({
           model,
-          temperature: 0.2,
+          temperature: 0.5,
           messages: [
             {
               role: "system",
-              content:
-                "你是 Lensmor Monitor 的竞品情报分析师。只返回一个 JSON 对象，不要 Markdown，不要解释。字段必须为 title、priority、changedAt、changeSummary、strategicIntent、recommendedActions。priority 只能是 urgent、medium、low。changeSummary 和 recommendedActions 必须是中文字符串数组。",
+              content: reportSystemPrompt,
             },
             {
               role: "user",
-              content: JSON.stringify({
-                competitorName: input.competitorName,
-                sourceUrl: input.sourceUrl,
-                facts: input.promptFacts,
-                outputExample: {
-                  title: "竞品关键页面发生变化",
-                  priority: "medium",
-                  changedAt: new Date().toISOString(),
-                  changeSummary: ["用一句中文概括一个事实变化"],
-                  strategicIntent: "用一段中文推断可能战略意图",
-                  recommendedActions: ["给出一个可执行建议"],
-                },
-              }),
+              content: userPrompt,
             },
           ],
         }),

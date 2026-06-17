@@ -1,4 +1,16 @@
-export type DiffChangeType = "copy" | "pricing" | "feature" | "layout" | "cta" | "noise";
+export type DiffChangeType =
+  | "copy"
+  | "pricing"
+  | "feature"
+  | "layout"
+  | "cta"
+  | "audience"
+  | "proof"
+  | "integration"
+  | "security"
+  | "enterprise"
+  | "promotion"
+  | "noise";
 
 export interface ExpectedDiff {
   type: DiffChangeType;
@@ -43,9 +55,10 @@ export function analyzeScenarioDiff(scenario: DiffScenario): DiffAnalysisResult 
     explainableChanges,
     noiseChanges,
     changeTypes,
-    promptFacts: explainableChanges.map(
-      (change) => `${change.type}: changed from "${change.before}" to "${change.after}"`,
-    ),
+    promptFacts: explainableChanges.map((change) => {
+      const location = change.selector ? ` ${change.selector}` : "";
+      return `${change.type}${location}: changed from "${change.before}" to "${change.after}"`;
+    }),
   };
 }
 

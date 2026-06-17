@@ -34,7 +34,50 @@ describe("mock competitor diff", () => {
 
     expect(result.explainableChanges).toHaveLength(5);
     expect(result.changeTypes).toEqual(["copy", "pricing", "feature", "layout", "cta"]);
+    expect(result.promptFacts).toEqual([
+      'copy: changed from "Start free" to "Start your trial"',
+      'pricing: changed from "$29" to "$39"',
+      'feature: changed from "Basic alerts" to "AI alerts"',
+      'layout: changed from "Single column" to "Comparison table"',
+      'cta: changed from "Learn more" to "Book demo"',
+    ]);
     expect(shouldGenerateReport(result)).toBe(true);
+  });
+
+  it("includes selectors in prompt facts and filters noise out of LLM input", () => {
+    const result = analyzeScenarioDiff({
+      ...baseScenario,
+      expectedDiff: [
+        {
+          type: "pricing",
+          selector: "[data-monitor-id='starter-price']",
+          before: "$49/mo",
+          after: "$79/mo with daily refresh",
+          explainable: true,
+        },
+        {
+          type: "security",
+          selector: "[data-monitor-id='security-note']",
+          before: "Standard workspace permissions",
+          after: "SSO and audit logs included",
+          explainable: true,
+        },
+        {
+          type: "noise",
+          selector: "[data-monitor-id='footer-year']",
+          before: "2025",
+          after: "2026",
+          explainable: false,
+        },
+      ],
+    });
+
+    expect(result.explainableChanges).toHaveLength(2);
+    expect(result.noiseChanges).toHaveLength(1);
+    expect(result.promptFacts).toEqual([
+      'pricing [data-monitor-id=\'starter-price\']: changed from "$49/mo" to "$79/mo with daily refresh"',
+      'security [data-monitor-id=\'security-note\']: changed from "Standard workspace permissions" to "SSO and audit logs included"',
+    ]);
   });
 
   it("does not generate reports for noise-only changes", () => {

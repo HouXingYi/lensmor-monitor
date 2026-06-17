@@ -140,6 +140,101 @@ a {
   margin-top: 16px;
 }
 
+.report-insight-card.ant-card {
+  overflow: hidden;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)),
+    var(--report-insight-accent-bg);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.report-insight-card.ant-card::before {
+  display: block;
+  height: 4px;
+  background: var(--report-insight-accent);
+  content: "";
+}
+
+.report-insight-card-change {
+  --report-insight-accent: linear-gradient(90deg, #2563eb, #38bdf8);
+  --report-insight-accent-bg: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 18rem);
+  --report-insight-marker-bg: rgba(37, 99, 235, 0.12);
+}
+
+.report-insight-card-strategy {
+  --report-insight-accent: linear-gradient(90deg, #7c3aed, #f472b6);
+  --report-insight-accent-bg: radial-gradient(circle at top left, rgba(124, 58, 237, 0.12), transparent 18rem);
+  --report-insight-marker-bg: rgba(124, 58, 237, 0.12);
+}
+
+.report-insight-card-action {
+  --report-insight-accent: linear-gradient(90deg, #059669, #22c55e);
+  --report-insight-accent-bg: radial-gradient(circle at top left, rgba(5, 150, 105, 0.12), transparent 18rem);
+  --report-insight-marker-bg: rgba(5, 150, 105, 0.12);
+}
+
+.report-insight-card .ant-card-head {
+  min-height: 48px;
+  border-bottom-color: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.report-insight-card .ant-card-head-title {
+  overflow: visible;
+}
+
+.report-insight-card .ant-card-body {
+  padding: 18px 22px 20px;
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.report-insight-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.report-insight-marker {
+  position: relative;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--report-insight-marker-bg);
+}
+
+.report-insight-marker::after {
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--report-insight-accent);
+  content: "";
+}
+
+.report-insight-list {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.report-insight-list li + li {
+  margin-top: 8px;
+}
+
+.report-insight-paragraph.ant-typography {
+  margin-bottom: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
 @media (max-width: 768px) {
   .app-header {
     align-items: stretch;
@@ -159,5 +254,9 @@ a {
 
   .split-row {
     flex-direction: column;
+  }
+
+  .report-insight-card .ant-card-body {
+    padding: 16px;
   }
 }

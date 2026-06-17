@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, Card, Col, Empty, Form, Input, List, Row, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Col, Empty, Form, Input, Row, Space, Tag, Typography } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -50,6 +50,21 @@ const priorityColors: Record<ReportRecord["priority"], string> = {
   medium: "blue",
   low: "default",
 };
+
+interface CollectionResponse {
+  task: TaskRecord;
+  report?: ReportRecord;
+  llmTrace?: {
+    input?: unknown;
+    prompt?: {
+      systemPrompt: string;
+      userPrompt: string;
+    };
+    output?: unknown;
+    error?: string;
+    skippedReason?: string;
+  };
+}
 
 export function CompetitorDetailClient({
   initialCompetitor,
@@ -154,7 +169,16 @@ export function CompetitorDetailClient({
     router.refresh();
   }
 
-  function applyTaskResult(body: { task: TaskRecord; report?: ReportRecord }, successMessage: string) {
+  function printLLMTrace(body: CollectionResponse) {
+    console.groupCollapsed("[Lensmor Monitor] 手动刷新 liteLLM 输入/输出");
+    console.log("liteLLM system prompt", body.llmTrace?.prompt?.systemPrompt ?? "liteLLM 未构造 system prompt");
+    console.log("liteLLM user prompt", body.llmTrace?.prompt?.userPrompt ?? "liteLLM 未构造 user prompt");
+    console.log("liteLLM input", body.llmTrace?.input ?? body.llmTrace?.skippedReason ?? "liteLLM 未被调用");
+    console.log("liteLLM output", body.llmTrace?.output ?? body.llmTrace?.error ?? "无输出");
+    console.groupEnd();
+  }
+
+  function applyTaskResult(body: CollectionResponse, successMessage: string) {
     setLatestTask(body.task);
     if (body.report) {
       setReports((current) => [body.report as ReportRecord, ...current]);
@@ -177,7 +201,7 @@ export function CompetitorDetailClient({
       throw new Error(body.error ?? (triggerType === "manual" ? "手动刷新失败。" : "定时监控失败。"));
     }
 
-    return (await response.json()) as { task: TaskRecord; report?: ReportRecord };
+    return (await response.json()) as CollectionResponse;
   }
 
   async function manualRefresh() {
@@ -187,6 +211,7 @@ export function CompetitorDetailClient({
 
     try {
       const body = await runCollection("manual");
+      printLLMTrace(body);
       applyTaskResult(body, "手动刷新已完成，并生成了一份报告。");
     } catch (error) {
       setError(error instanceof Error ? error.message : "手动刷新失败。");
@@ -224,6 +249,10 @@ export function CompetitorDetailClient({
       <Col lg={16} xs={24}>
         <Card>
           <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            <Link href="/competitors">
+              <Button>← 返回竞品列表</Button>
+            </Link>
+
             <Space align="start" className="split-row">
               <Space orientation="vertical" size={0}>
                 <Typography.Text type="secondary">竞品详情</Typography.Text>
@@ -260,16 +289,16 @@ export function CompetitorDetailClient({
                   latestTask.failureReason ??
                   (latestTask.reportId ? `已生成报告：${latestTask.reportId}` : "未生成报告。")
                 }
-                message={<><Tag color={taskStatusColors[latestTask.status]}>{taskStatusLabels[latestTask.status]}</Tag> 最新任务</>}
+                title={<><Tag color={taskStatusColors[latestTask.status]}>{taskStatusLabels[latestTask.status]}</Tag> 最新任务</>}
                 showIcon
                 type={latestTask.status === "failed" ? "error" : latestTask.status === "completed" ? "success" : "info"}
               />
             ) : (
-              <Alert description="点击手动刷新，生成第一份分析报告。" message="暂无采集任务" showIcon type="info" />
+              <Alert description="点击手动刷新，生成第一份分析报告。" title="暂无采集任务" showIcon type="info" />
             )}
 
-            {message ? <Alert message={message} showIcon type="success" /> : null}
-            {error ? <Alert message={error} showIcon type="error" /> : null}
+            {message ? <Alert title={message} showIcon type="success" /> : null}
+            {error ? <Alert title={error} showIcon type="error" /> : null}
 
             <Form layout="vertical" onFinish={saveCompetitor}>
               <Row gutter={16}>
@@ -288,25 +317,25 @@ export function CompetitorDetailClient({
               <Card size="small" title="关联链接">
                 <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
                   {links.length > 0 ? (
-                    <List
-                      dataSource={links}
-                      renderItem={(link, index) => (
-                        <List.Item
-                          actions={[
+                    <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+                      {links.map((link, index) => (
+                        <Card key={`${link.label}-${link.url}`} size="small">
+                          <Space align="start" className="split-row">
+                            <Space orientation="vertical" size={4}>
+                              <Typography.Text strong>{link.label}</Typography.Text>
+                              <Typography.Text type="secondary">{link.url}</Typography.Text>
+                            </Space>
                             <Button
                               danger
-                              key="remove"
                               onClick={() => setLinks((current) => current.filter((_, itemIndex) => itemIndex !== index))}
                               type="link"
                             >
                               移除
-                            </Button>,
-                          ]}
-                        >
-                          <List.Item.Meta description={link.url} title={link.label} />
-                        </List.Item>
-                      )}
-                    />
+                            </Button>
+                          </Space>
+                        </Card>
+                      ))}
+                    </Space>
                   ) : (
                     <Empty description="暂无链接，可以添加价格页、产品页或更新日志页用于追踪。" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                   )}
@@ -350,22 +379,17 @@ export function CompetitorDetailClient({
           title="最新情报"
         >
           {reports.length > 0 ? (
-            <List
-              dataSource={reports}
-              renderItem={(report) => (
-                <List.Item>
-                  <List.Item.Meta
-                    description={new Date(report.createdAt).toLocaleString("zh-CN")}
-                    title={
-                      <Space orientation="vertical" size={4}>
-                        <Tag color={priorityColors[report.priority]}>{priorityLabels[report.priority]}</Tag>
-                        <Link href={`/reports/${report.id}`}>{report.title}</Link>
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+            <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+              {reports.map((report) => (
+                <Card key={report.id} size="small">
+                  <Space orientation="vertical" size={4}>
+                    <Tag color={priorityColors[report.priority]}>{priorityLabels[report.priority]}</Tag>
+                    <Link href={`/reports/${report.id}`}>{report.title}</Link>
+                    <Typography.Text type="secondary">{new Date(report.createdAt).toLocaleString("zh-CN")}</Typography.Text>
+                  </Space>
+                </Card>
+              ))}
+            </Space>
           ) : (
             <Empty description="执行一次手动刷新，采集模拟变化并生成第一份报告。" />
           )}

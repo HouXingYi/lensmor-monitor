@@ -58,7 +58,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           value={password}
         />
       </Form.Item>
-      {error ? <Alert message={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
+      {error ? <Alert title={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
       <Button block htmlType="submit" loading={submitting} size="large" type="primary">
         登录
       </Button>

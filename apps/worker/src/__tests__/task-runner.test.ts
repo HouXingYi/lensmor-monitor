@@ -22,7 +22,29 @@ describe("task runner", () => {
         beforeSnapshot: "001-baseline.html",
         afterSnapshot: "002-cta-change.html",
         sourceUrl: "https://acme-ai.mock/pricing",
-        expectedDiff: [{ type: "cta", before: "Start free", after: "Book demo", explainable: true }],
+        expectedDiff: [
+          {
+            type: "cta",
+            selector: "[data-monitor-id='primary-cta']",
+            before: "Start free",
+            after: "Book demo",
+            explainable: true,
+          },
+          {
+            type: "pricing",
+            selector: "[data-monitor-id='starter-price']",
+            before: "$49/mo",
+            after: "$79/mo with daily refresh",
+            explainable: true,
+          },
+          {
+            type: "security",
+            selector: "[data-monitor-id='security-note']",
+            before: "Standard workspace permissions",
+            after: "SSO and audit logs included",
+            explainable: true,
+          },
+        ],
         expectedReportHints: {
           summaryMustInclude: ["CTA"],
           intentCandidates: ["sales-led"],
@@ -34,6 +56,9 @@ describe("task runner", () => {
 
     expect(result.task.status).toBe("completed");
     expect(result.report?.title).toContain("Acme AI");
+    expect(result.report?.changeSummary.length).toBeGreaterThanOrEqual(3);
+    expect(result.report?.recommendedActions.length).toBeGreaterThanOrEqual(3);
+    expect(result.report?.strategicIntent.length).toBeGreaterThan(80);
   });
 
   it("fails the task without creating an empty report when AI generation fails", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, Card, Checkbox, Col, Form, Input, List, Radio, Row, Space, Typography } from "antd";
+import { Alert, Button, Card, Checkbox, Col, Form, Input, Radio, Row, Space, Typography } from "antd";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -272,20 +272,27 @@ export function OnboardingForm() {
                 </Col>
               </Row>
               {manualCompetitors.length > 0 ? (
-                <List
-                  dataSource={manualCompetitors}
-                  renderItem={(competitor, index) => (
-                    <List.Item actions={[<Button key="remove" onClick={() => removeManualCompetitor(index)} type="link" danger>移除</Button>]}>
-                      <List.Item.Meta description={competitor.mainDomain} title={competitor.name} />
-                    </List.Item>
-                  )}
-                />
+                <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+                  {manualCompetitors.map((competitor, index) => (
+                    <Card key={`${competitor.name}-${competitor.mainDomain}`} size="small">
+                      <Space align="start" className="split-row">
+                        <Space orientation="vertical" size={4}>
+                          <Typography.Text strong>{competitor.name}</Typography.Text>
+                          <Typography.Text type="secondary">{competitor.mainDomain}</Typography.Text>
+                        </Space>
+                        <Button danger onClick={() => removeManualCompetitor(index)} type="link">
+                          移除
+                        </Button>
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
               ) : null}
             </Card>
           </Space>
         </Card>
 
-        {error ? <Alert message={error} showIcon type="error" /> : null}
+        {error ? <Alert title={error} showIcon type="error" /> : null}
 
         <div className="form-actions">
           <Button htmlType="submit" loading={submitting} size="large" type="primary">

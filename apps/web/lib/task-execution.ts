@@ -1,5 +1,11 @@
-import { type TriggerType } from "@lensmor/domain";
-import { createLiteLLMClient, createMockLiteLLMClient } from "@lensmor/worker/litellm-client";
+import { type AnalysisReportDraft, type TriggerType } from "@lensmor/domain";
+import {
+  createLiteLLMClient,
+  createMockLiteLLMClient,
+  type LiteLLMClient,
+  type LiteLLMPromptTrace,
+  type LiteLLMReportInput,
+} from "@lensmor/worker/litellm-client";
 import { runCollectionTask } from "@lensmor/worker/task-runner";
 
 import {
@@ -23,13 +29,41 @@ import {
 export interface CollectionExecutionResult {
   task: TaskRecord;
   report?: ReportRecord;
+  llmTrace: LLMTrace;
 }
 
-function createRuntimeLiteLLMClient() {
-  if (process.env.NODE_ENV === "test") {
-    return createMockLiteLLMClient();
-  }
-  return createLiteLLMClient();
+export interface LLMTrace {
+  input?: LiteLLMReportInput;
+  prompt?: LiteLLMPromptTrace;
+  output?: AnalysisReportDraft;
+  error?: string;
+  skippedReason?: string;
+}
+
+function createRuntimeLiteLLMClient(trace: LLMTrace): LiteLLMClient {
+  const client =
+    process.env.NODE_ENV === "test"
+      ? createMockLiteLLMClient()
+      : createLiteLLMClient({
+          onPrompt(prompt) {
+            trace.prompt = prompt;
+          },
+        });
+
+  return {
+    async generateReport(input) {
+      trace.input = input;
+
+      try {
+        const output = await client.generateReport(input);
+        trace.output = output;
+        return output;
+      } catch (error) {
+        trace.error = error instanceof Error ? error.message : "Unknown liteLLM error";
+        throw error;
+      }
+    },
+  };
 }
 
 export async function executeCollectionForCompetitor(input: {
@@ -39,6 +73,7 @@ export async function executeCollectionForCompetitor(input: {
   origin: string;
 }): Promise<CollectionExecutionResult> {
   updateCompetitor(input.ownerId, input.competitor.id, { status: "collecting" });
+  const llmTrace: LLMTrace = {};
 
   try {
     const target = selectMockPageTarget(input.competitor.mainDomain);
@@ -49,8 +84,12 @@ export async function executeCollectionForCompetitor(input: {
       competitor: input.competitor,
       triggerType: input.triggerType,
       scenario,
-      litellm: createRuntimeLiteLLMClient(),
+      litellm: createRuntimeLiteLLMClient(llmTrace),
     });
+    if (!llmTrace.input) {
+      llmTrace.skippedReason =
+        result.task.status === "failed" ? "Task failed before liteLLM was called." : "No report-worthy diff; liteLLM was not called.";
+    }
     const report = result.report ? createReport(input.ownerId, result.report) : undefined;
     const task = saveTask(input.ownerId, result.task, report?.id);
 
@@ -58,7 +97,7 @@ export async function executeCollectionForCompetitor(input: {
       saveLastMockSnapshot(input.ownerId, input.competitor.id, toCollectedMockSnapshot(snapshot));
     }
 
-    return report ? { task, report } : { task };
+    return report ? { task, report, llmTrace } : { task, llmTrace };
   } finally {
     const latest = getCompetitor(input.ownerId, input.competitor.id);
     if (latest?.status === "collecting") {

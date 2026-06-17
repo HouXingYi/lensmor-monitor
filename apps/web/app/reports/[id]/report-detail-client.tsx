@@ -1,7 +1,8 @@
 "use client";
 
-import { Button, Card, Descriptions, List, Space, Tag, Typography } from "antd";
+import { Button, Card, Descriptions, Space, Tag, Typography } from "antd";
 import Link from "next/link";
+import { type ReactNode } from "react";
 
 import { type ReportRecord } from "../../../lib/mvp-store";
 import { ReportFeedbackForm } from "./report-feedback-form";
@@ -25,6 +26,31 @@ const priorityColors = {
   medium: "blue",
   low: "default",
 } as const;
+
+function ReportInsightCard({
+  children,
+  title,
+  tone,
+}: {
+  children: ReactNode;
+  title: string;
+  tone: "change" | "strategy" | "action";
+}) {
+  return (
+    <Card
+      className={`report-insight-card report-insight-card-${tone}`}
+      size="small"
+      title={
+        <span className="report-insight-title">
+          <span aria-hidden className="report-insight-marker" />
+          {title}
+        </span>
+      }
+    >
+      {children}
+    </Card>
+  );
+}
 
 export function ReportDetailClient({ report, competitor }: ReportDetailClientProps) {
   return (
@@ -63,17 +89,25 @@ export function ReportDetailClient({ report, competitor }: ReportDetailClientPro
             ]}
           />
 
-          <Card size="small" title="发生了什么变化">
-            <List dataSource={Array.from(report.changeSummary)} renderItem={(item) => <List.Item>{item}</List.Item>} />
-          </Card>
+          <ReportInsightCard title="发生了什么变化" tone="change">
+            <ul className="report-insight-list">
+              {Array.from(report.changeSummary).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </ReportInsightCard>
 
-          <Card size="small" title="战略意图">
-            <Typography.Paragraph>{report.strategicIntent}</Typography.Paragraph>
-          </Card>
+          <ReportInsightCard title="战略意图" tone="strategy">
+            <Typography.Paragraph className="report-insight-paragraph">{report.strategicIntent}</Typography.Paragraph>
+          </ReportInsightCard>
 
-          <Card size="small" title="建议行动">
-            <List dataSource={Array.from(report.recommendedActions)} renderItem={(item) => <List.Item>{item}</List.Item>} />
-          </Card>
+          <ReportInsightCard title="建议行动" tone="action">
+            <ul className="report-insight-list">
+              {Array.from(report.recommendedActions).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </ReportInsightCard>
 
           <Space>
             <Link href="/inbox">

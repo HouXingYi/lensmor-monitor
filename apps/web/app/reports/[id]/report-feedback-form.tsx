@@ -83,8 +83,8 @@ export function ReportFeedbackForm({ reportId }: { reportId: string }) {
           </Button>
         </Form>
 
-        {message ? <Alert message={message} showIcon type="success" /> : null}
-        {error ? <Alert message={error} showIcon type="error" /> : null}
+        {message ? <Alert title={message} showIcon type="success" /> : null}
+        {error ? <Alert title={error} showIcon type="error" /> : null}
       </Space>
     </Card>
   );

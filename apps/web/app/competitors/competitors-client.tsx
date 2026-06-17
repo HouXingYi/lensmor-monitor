@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, Card, Col, Empty, Form, Input, List, Modal, Row, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Col, Empty, Form, Input, Modal, Row, Space, Tag, Typography } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -184,41 +184,37 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
               <Typography.Title level={2} style={{ margin: 0 }}>
                 监控工作台
               </Typography.Title>
-              <Typography.Text type="secondary">监控中竞品会每 {monitorIntervalMs / 1000} 秒自动采集一次 mock 页面。</Typography.Text>
+              <Typography.Text type="secondary">监控中竞品会每 {monitorIntervalMs / 1000} 秒自动采集一次页面。</Typography.Text>
             </Space>
           }
         >
           <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-            {monitorMessage ? <Alert message={monitorMessage} showIcon type="success" /> : null}
+            {monitorMessage ? <Alert title={monitorMessage} showIcon type="success" /> : null}
             {competitors.length > 0 ? (
-              <List
-                dataSource={competitors}
-                renderItem={(competitor) => (
-                  <List.Item
-                    actions={[
-                      <Link href={`/competitors/${competitor.id}`} key="detail">
-                        查看详情
-                      </Link>,
-                      <Button key="status" onClick={() => updateStatus(competitor)} size="small">
-                        {competitor.status === "paused" ? "恢复" : "暂停"}
-                      </Button>,
-                      <Button danger key="delete" onClick={() => deleteCompetitor(competitor.id)} size="small">
-                        删除
-                      </Button>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      description={competitor.mainDomain}
-                      title={
+              <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+                {competitors.map((competitor) => (
+                  <Card key={competitor.id} size="small">
+                    <Space align="start" className="split-row">
+                      <Space orientation="vertical" size={4}>
                         <Space>
                           <Link href={`/competitors/${competitor.id}`}>{competitor.name}</Link>
                           <Tag color={statusColors[competitor.status]}>{statusLabels[competitor.status]}</Tag>
                         </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
+                        <Typography.Text type="secondary">{competitor.mainDomain}</Typography.Text>
+                      </Space>
+                      <Space wrap>
+                        <Link href={`/competitors/${competitor.id}`}>查看详情</Link>
+                        <Button onClick={() => updateStatus(competitor)} size="small">
+                          {competitor.status === "paused" ? "恢复" : "暂停"}
+                        </Button>
+                        <Button danger onClick={() => deleteCompetitor(competitor.id)} size="small">
+                          删除
+                        </Button>
+                      </Space>
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
             ) : (
               <Empty description="还没有竞品，添加至少一个竞品后即可开始监控网站变化。" />
             )}
@@ -228,7 +224,7 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
 
       <Col lg={8} xs={24}>
         <Card
-          extra={<Button onClick={() => setPresetModalOpen(true)}>选择 mock 竞品</Button>}
+          extra={<Button onClick={() => setPresetModalOpen(true)}>选择竞品</Button>}
           title="添加竞品"
         >
           <Form layout="vertical" onFinish={createCompetitor}>
@@ -252,7 +248,7 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
                 value={mainDomain}
               />
             </Form.Item>
-            {error ? <Alert message={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
+            {error ? <Alert title={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
             <Button block htmlType="submit" loading={submitting} type="primary">
               + 添加竞品
             </Button>
@@ -264,22 +260,25 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
         footer={null}
         onCancel={() => setPresetModalOpen(false)}
         open={presetModalOpen}
-        title="选择一个 mock 竞品"
+        title="选择一个竞品"
       >
-        <List
-          dataSource={mockCompetitorPresets}
-          renderItem={(preset) => (
-            <List.Item
-              actions={[
-                <Button key="select" onClick={() => applyPreset(preset)} type={selectedPresetId === preset.id ? "primary" : "default"}>
+        <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+          {mockCompetitorPresets.map((preset) => (
+            <Card key={preset.id} size="small">
+              <Space align="start" className="split-row">
+                <Space orientation="vertical" size={4}>
+                  <Typography.Text strong>{preset.name}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {preset.mainDomain} · {preset.description}
+                  </Typography.Text>
+                </Space>
+                <Button onClick={() => applyPreset(preset)} type={selectedPresetId === preset.id ? "primary" : "default"}>
                   选择并填入
-                </Button>,
-              ]}
-            >
-              <List.Item.Meta description={`${preset.mainDomain} · ${preset.description}`} title={preset.name} />
-            </List.Item>
-          )}
-        />
+                </Button>
+              </Space>
+            </Card>
+          ))}
+        </Space>
       </Modal>
     </Row>
   );
