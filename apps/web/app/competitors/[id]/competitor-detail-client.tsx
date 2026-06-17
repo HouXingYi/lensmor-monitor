@@ -56,6 +56,17 @@ const priorityColors: Record<ReportRecord["priority"], string> = {
   low: "default",
 };
 
+function getMockPageHref(mainDomain: string): string {
+  const normalized = mainDomain.toLowerCase();
+  const target = normalized.includes("nova")
+    ? { site: "nova-stack", page: "home" }
+    : normalized.includes("acme") && normalized.includes("product")
+      ? { site: "acme-ai", page: "product" }
+      : { site: "acme-ai", page: "pricing" };
+
+  return `/mock-pages/${encodeURIComponent(target.site)}/${encodeURIComponent(target.page)}`;
+}
+
 interface CollectionResponse {
   task: TaskRecord;
   report?: ReportRecord;
@@ -97,6 +108,7 @@ export function CompetitorDetailClient({
   const [lastScheduledAt, setLastScheduledAt] = useState<string | null>(null);
   const [secondsUntilNextRun, setSecondsUntilNextRun] = useState<number | null>(null);
   const scheduledInFlightRef = useRef(false);
+  const mockPageHref = getMockPageHref(competitor.mainDomain);
 
   function addLink() {
     const label = linkLabel.trim();
@@ -287,6 +299,9 @@ export function CompetitorDetailClient({
 
             <Space wrap>
               <Button onClick={toggleStatus}>{competitor.status === "paused" ? "恢复监控" : "暂停监控"}</Button>
+              <Button href={mockPageHref} rel="noreferrer" target="_blank">
+                打开竞品页面
+              </Button>
               <Button disabled={competitor.status === "paused"} loading={refreshing} onClick={manualRefresh} type="primary">
                 手动刷新
               </Button>

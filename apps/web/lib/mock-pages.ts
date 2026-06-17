@@ -68,6 +68,7 @@ interface MockPageDefinition extends MockPageTarget {
 interface MockPageRuntime {
   pages: Map<string, MockPageSnapshot>;
   signatures: Map<string, string>;
+  lastRotatedAt: number;
   timer?: ReturnType<typeof globalThis.setInterval>;
 }
 
@@ -628,7 +629,7 @@ function createSnapshot(
 function createRuntime(): MockPageRuntime {
   const pages = new Map<string, MockPageSnapshot>();
   const signatures = new Map<string, string>();
-  const nextRuntime: MockPageRuntime = { pages, signatures };
+  const nextRuntime: MockPageRuntime = { pages, signatures, lastRotatedAt: Date.now() };
 
   for (const definition of definitions) {
     pages.set(pageKey(definition), createSnapshot(definition, createDynamicVariant(definition), nextRuntime));
@@ -643,6 +644,7 @@ export function rotateMockPages(): void {
     const key = pageKey(definition);
     runtime.pages.set(key, createSnapshot(definition, createDynamicVariant(definition, runtime.signatures.get(key)), runtime));
   }
+  runtime.lastRotatedAt = Date.now();
 }
 
 export function ensureMockPageTicker(): void {
@@ -650,8 +652,15 @@ export function ensureMockPageTicker(): void {
   runtime.timer = globalThis.setInterval(rotateMockPages, MOCK_PAGE_REFRESH_INTERVAL_MS);
 }
 
+function ensureFreshMockPages(): void {
+  if (Date.now() - runtime.lastRotatedAt >= MOCK_PAGE_REFRESH_INTERVAL_MS) {
+    rotateMockPages();
+  }
+}
+
 export function getMockPageSnapshot(site: string, page: string): MockPageSnapshot | undefined {
   ensureMockPageTicker();
+  ensureFreshMockPages();
   return runtime.pages.get(pageKey({ site, page }));
 }
 
