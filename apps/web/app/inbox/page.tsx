@@ -10,7 +10,7 @@ import {
   listReports,
   type ReportFilters,
 } from "../../lib/mvp-store";
-import { hydrateCompetitorsFromCookie } from "../../lib/mvp-persistence";
+import { hydrateMvpStateFromCookie } from "../../lib/mvp-persistence";
 import { hasCompletedOnboardingForPage, requirePageSession } from "../../lib/page-session";
 import { InboxClient } from "./inbox-client";
 
@@ -34,7 +34,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
     redirect("/onboarding");
   }
   const cookieStore = await cookies();
-  hydrateCompetitorsFromCookie(session.userId, cookieStore.toString());
+  hydrateMvpStateFromCookie(session.userId, cookieStore.toString());
 
   const params = await searchParams;
   const filters: ReportFilters = {};

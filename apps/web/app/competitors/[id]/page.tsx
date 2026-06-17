@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { AppShell } from "../../app-shell";
-import { hydrateCompetitorsFromCookie } from "../../../lib/mvp-persistence";
+import { hydrateMvpStateFromCookie } from "../../../lib/mvp-persistence";
 import {
   getCompetitor,
   listReports,
@@ -23,7 +23,7 @@ export default async function CompetitorDetailPage({ params }: CompetitorDetailP
 
   const { id } = await params;
   const cookieStore = await cookies();
-  hydrateCompetitorsFromCookie(session.userId, cookieStore.toString());
+  hydrateMvpStateFromCookie(session.userId, cookieStore.toString());
   const competitor = getCompetitor(session.userId, id);
   if (!competitor) {
     notFound();

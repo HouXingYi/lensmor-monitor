@@ -1,6 +1,7 @@
 import { type ReportPriority } from "@lensmor/domain";
 
 import { requireSession } from "../../../lib/api-auth";
+import { hydrateMvpStateFromCookie } from "../../../lib/mvp-persistence";
 import { isReportRead, listReports, type ReportFilters } from "../../../lib/mvp-store";
 
 export const runtime = "nodejs";
@@ -13,6 +14,7 @@ function parsePriority(value: string | null): ReportPriority | undefined {
 export async function GET(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateMvpStateFromCookie(session.userId, request.headers.get("cookie"));
 
   const url = new URL(request.url);
   const filters: ReportFilters = {};

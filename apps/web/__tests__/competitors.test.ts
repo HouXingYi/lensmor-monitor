@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { GET as getCompetitor, PATCH, DELETE } from "../app/api/competitors/[id]/route";
 import { GET, POST } from "../app/api/competitors/route";
+import { GET as getReport } from "../app/api/reports/[id]/route";
 import { POST as createTask } from "../app/api/tasks/route";
 import { createSessionCookie } from "../lib/session";
 import { resetMvpStore } from "../lib/mvp-store";
@@ -143,6 +144,65 @@ describe("competitors API", () => {
 
     expect(response.status).toBe(202);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("hydrates generated reports from the persistence cookie after memory resets", async () => {
+    resetMvpStore();
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LITELLM_BASE_URL", "https://litellm.test");
+    vi.stubEnv("LITELLM_API_KEY", "test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  title: "Acme AI 网站变化提醒",
+                  priority: "medium",
+                  changedAt: new Date().toISOString(),
+                  changeSummary: ["价格表达发生变化。", "主 CTA 发生变化。", "客户证明发生变化。"],
+                  strategicIntent:
+                    "竞品正在同步调整定价表达、转化入口和信任证明，可能希望提升高意向线索转化，并加强面向产品与市场团队的价值叙事。",
+                  recommendedActions: ["复核自有定价页。", "检查主 CTA。", "持续观察后续页面变化。"],
+                }),
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const cookie = await sessionCookie();
+
+    const created = await POST(
+      new Request("http://localhost/api/competitors", {
+        method: "POST",
+        headers: { cookie },
+        body: JSON.stringify({ name: "Acme AI", mainDomain: "acme-ai.mock", links: [] }),
+      }),
+    );
+    const createdBody = (await created.json()) as { id: string };
+    const taskResponse = await createTask(
+      new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { cookie: `${cookie}; ${created.headers.get("set-cookie") ?? ""}` },
+        body: JSON.stringify({ competitorId: createdBody.id, triggerType: "manual" }),
+      }),
+    );
+    const taskBody = (await taskResponse.json()) as { report?: { id: string } };
+    const persistedCookies = taskResponse.headers.getSetCookie().join("; ");
+    resetMvpStore();
+
+    const reportResponse = await getReport(
+      new Request(`http://localhost/api/reports/${taskBody.report?.id}`, {
+        headers: { cookie: `${cookie}; ${persistedCookies}` },
+      }),
+      { params: { id: taskBody.report?.id ?? "" } },
+    );
+
+    expect(reportResponse.status).toBe(200);
+    expect(((await reportResponse.json()) as { title: string }).title).toBe("Acme AI 网站变化提醒");
   });
 
   it("rejects more than 10 associated links", async () => {

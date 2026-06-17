@@ -1,6 +1,11 @@
 import { requireSession } from "../../../lib/api-auth";
 import { executeCollectionForCompetitor } from "../../../lib/task-execution";
-import { hydrateCompetitorsFromCookie } from "../../../lib/mvp-persistence";
+import {
+  createCompetitorsCookie,
+  createReportsCookie,
+  createTasksCookie,
+  hydrateMvpStateFromCookie,
+} from "../../../lib/mvp-persistence";
 import { getCompetitor } from "../../../lib/mvp-store";
 
 export const runtime = "nodejs";
@@ -13,7 +18,7 @@ interface TaskBody {
 export async function POST(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
-  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
+  hydrateMvpStateFromCookie(session.userId, request.headers.get("cookie"));
 
   const body = (await request.json().catch(() => ({}))) as TaskBody;
   if (!body.competitorId) {
@@ -38,16 +43,24 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     if (result.task.status === "failed") {
-      return Response.json(
+      const failedResponse = Response.json(
         {
           ...result,
           error: result.task.failureReason ?? "任务执行失败。",
         },
         { status: 502 },
       );
+      failedResponse.headers.append("Set-Cookie", createCompetitorsCookie(session.userId));
+      failedResponse.headers.append("Set-Cookie", createReportsCookie(session.userId));
+      failedResponse.headers.append("Set-Cookie", createTasksCookie(session.userId));
+      return failedResponse;
     }
 
-    return Response.json(result, { status: 202 });
+    const taskResponse = Response.json(result, { status: 202 });
+    taskResponse.headers.append("Set-Cookie", createCompetitorsCookie(session.userId));
+    taskResponse.headers.append("Set-Cookie", createReportsCookie(session.userId));
+    taskResponse.headers.append("Set-Cookie", createTasksCookie(session.userId));
+    return taskResponse;
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "任务执行失败。" },

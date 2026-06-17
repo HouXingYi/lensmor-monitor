@@ -191,6 +191,14 @@ export function createReport(ownerId: string, draft: AnalysisReportDraft): Repor
   return report;
 }
 
+export function hydrateReports(ownerId: string, records: ReportRecord[]): void {
+  for (const record of records) {
+    if (record.ownerId === ownerId) {
+      reports.set(record.id, record);
+    }
+  }
+}
+
 export function saveTask(ownerId: string, task: CollectionTask, reportId?: string): TaskRecord {
   const record: TaskRecord = {
     ...task,
@@ -199,6 +207,14 @@ export function saveTask(ownerId: string, task: CollectionTask, reportId?: strin
   };
   tasks.set(record.id, record);
   return record;
+}
+
+export function hydrateTasks(ownerId: string, records: TaskRecord[]): void {
+  for (const record of records) {
+    if (record.ownerId === ownerId) {
+      tasks.set(record.id, record);
+    }
+  }
 }
 
 export function getTask(ownerId: string, id: string): TaskRecord | undefined {

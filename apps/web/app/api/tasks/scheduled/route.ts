@@ -1,5 +1,10 @@
 import { requireSession } from "../../../../lib/api-auth";
-import { hydrateCompetitorsFromCookie } from "../../../../lib/mvp-persistence";
+import {
+  createCompetitorsCookie,
+  createReportsCookie,
+  createTasksCookie,
+  hydrateMvpStateFromCookie,
+} from "../../../../lib/mvp-persistence";
 import { listCompetitors } from "../../../../lib/mvp-store";
 import { executeCollectionForCompetitor } from "../../../../lib/task-execution";
 
@@ -8,7 +13,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
-  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
+  hydrateMvpStateFromCookie(session.userId, request.headers.get("cookie"));
 
   const origin = new URL(request.url).origin;
   const competitors = listCompetitors(session.userId);
@@ -24,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
     ),
   );
 
-  return Response.json(
+  const scheduledResponse = Response.json(
     {
       checked: monitoringCompetitors.length,
       skipped: competitors.length - monitoringCompetitors.length,
@@ -32,4 +37,8 @@ export async function POST(request: Request): Promise<Response> {
     },
     { status: 202 },
   );
+  scheduledResponse.headers.append("Set-Cookie", createCompetitorsCookie(session.userId));
+  scheduledResponse.headers.append("Set-Cookie", createReportsCookie(session.userId));
+  scheduledResponse.headers.append("Set-Cookie", createTasksCookie(session.userId));
+  return scheduledResponse;
 }

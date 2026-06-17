@@ -1,4 +1,5 @@
 import { requireSession } from "../../../../../lib/api-auth";
+import { hydrateMvpStateFromCookie } from "../../../../../lib/mvp-persistence";
 import { createFeedback, type FeedbackType, type WrongReason } from "../../../../../lib/mvp-store";
 
 export const runtime = "nodejs";
@@ -20,6 +21,7 @@ function parseFeedbackType(type: string | undefined): FeedbackType | null {
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateMvpStateFromCookie(session.userId, request.headers.get("cookie"));
 
   const body = (await request.json().catch(() => ({}))) as FeedbackBody;
   const type = parseFeedbackType(body.type);
