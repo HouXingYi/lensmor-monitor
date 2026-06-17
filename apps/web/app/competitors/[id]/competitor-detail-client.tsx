@@ -9,6 +9,11 @@ import { type CompetitorLink, type CompetitorRecord, type ReportRecord, type Tas
 
 const monitorIntervalMs = 60_000;
 
+function getSecondsUntil(timestamp: number | null): number | null {
+  if (!timestamp) return null;
+  return Math.max(0, Math.ceil((timestamp - Date.now()) / 1000));
+}
+
 const statusLabels: Record<CompetitorRecord["status"], string> = {
   monitoring: "监控中",
   paused: "已暂停",
@@ -90,6 +95,7 @@ export function CompetitorDetailClient({
   const [refreshing, setRefreshing] = useState(false);
   const [scheduledRunning, setScheduledRunning] = useState(false);
   const [lastScheduledAt, setLastScheduledAt] = useState<string | null>(null);
+  const [secondsUntilNextRun, setSecondsUntilNextRun] = useState<number | null>(null);
   const scheduledInFlightRef = useRef(false);
 
   function addLink() {
@@ -221,11 +227,23 @@ export function CompetitorDetailClient({
   }
 
   useEffect(() => {
-    if (competitor.status !== "monitoring") return;
+    if (competitor.status !== "monitoring") {
+      setSecondsUntilNextRun(null);
+      return;
+    }
+
+    let nextRunAt = Date.now() + monitorIntervalMs;
+    setSecondsUntilNextRun(getSecondsUntil(nextRunAt));
+
+    const countdownId = window.setInterval(() => {
+      setSecondsUntilNextRun(getSecondsUntil(nextRunAt));
+    }, 1000);
 
     const intervalId = window.setInterval(() => {
       if (scheduledInFlightRef.current) return;
       scheduledInFlightRef.current = true;
+      nextRunAt = Date.now() + monitorIntervalMs;
+      setSecondsUntilNextRun(getSecondsUntil(nextRunAt));
       setScheduledRunning(true);
       runCollection("scheduled")
         .then((body) => {
@@ -241,7 +259,10 @@ export function CompetitorDetailClient({
         });
     }, monitorIntervalMs);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(countdownId);
+      window.clearInterval(intervalId);
+    };
   }, [competitor.id, competitor.status]);
 
   return (
@@ -278,8 +299,12 @@ export function CompetitorDetailClient({
                     scheduledRunning
                       ? "本轮采集中..."
                       : lastScheduledAt
-                        ? `上次采集：${new Date(lastScheduledAt).toLocaleString("zh-CN")}`
+                        ? `上次采集：${new Date(lastScheduledAt).toLocaleString("zh-CN")}。`
                         : ""
+                  }${
+                    !scheduledRunning && secondsUntilNextRun !== null
+                      ? `下次采集约 ${secondsUntilNextRun} 秒后。`
+                      : ""
                   }`}
             </Typography.Text>
 

@@ -22,7 +22,7 @@ export interface LiteLLMClientOptions {
   onPrompt?: (prompt: LiteLLMPromptTrace) => void;
 }
 
-const defaultLiteLLMModel = "claude-sonnet-4-6";
+const defaultLiteLLMModel = "claude-haiku-4-5";
 const localEnvFiles = [".env.local", ".env"];
 const reportSystemPrompt =
   "你是 Lensmor Monitor 的竞品情报分析师。只返回一个 JSON 对象，不要 Markdown，不要解释。字段必须为 title、priority、changedAt、changeSummary、strategicIntent、recommendedActions。priority 只能是 urgent、medium、low。changeSummary 和 recommendedActions 必须是中文字符串数组。";

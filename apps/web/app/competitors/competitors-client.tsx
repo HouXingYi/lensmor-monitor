@@ -9,6 +9,11 @@ import { type CompetitorLink, type CompetitorRecord } from "../../lib/mvp-store"
 
 const monitorIntervalMs = 60_000;
 
+function getSecondsUntil(timestamp: number | null): number | null {
+  if (!timestamp) return null;
+  return Math.max(0, Math.ceil((timestamp - Date.now()) / 1000));
+}
+
 interface MockCompetitorPreset {
   id: string;
   name: string;
@@ -61,6 +66,7 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [monitorMessage, setMonitorMessage] = useState<string | null>(null);
+  const [secondsUntilNextRun, setSecondsUntilNextRun] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [presetModalOpen, setPresetModalOpen] = useState(false);
   const scheduledInFlightRef = useRef(false);
@@ -144,11 +150,23 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
   }
 
   useEffect(() => {
-    if (!competitors.some((competitor) => competitor.status === "monitoring")) return;
+    if (!competitors.some((competitor) => competitor.status === "monitoring")) {
+      setSecondsUntilNextRun(null);
+      return;
+    }
+
+    let nextRunAt = Date.now() + monitorIntervalMs;
+    setSecondsUntilNextRun(getSecondsUntil(nextRunAt));
+
+    const countdownId = window.setInterval(() => {
+      setSecondsUntilNextRun(getSecondsUntil(nextRunAt));
+    }, 1000);
 
     const intervalId = window.setInterval(() => {
       if (scheduledInFlightRef.current) return;
       scheduledInFlightRef.current = true;
+      nextRunAt = Date.now() + monitorIntervalMs;
+      setSecondsUntilNextRun(getSecondsUntil(nextRunAt));
       fetch("/api/tasks/scheduled", { method: "POST" })
         .then(async (response) => {
           const body = (await response.json().catch(() => ({}))) as { checked?: number; skipped?: number; error?: string };
@@ -166,7 +184,10 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
         });
     }, monitorIntervalMs);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(countdownId);
+      window.clearInterval(intervalId);
+    };
   }, [competitors, router]);
 
   return (
@@ -184,7 +205,10 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
               <Typography.Title level={2} style={{ margin: 0 }}>
                 监控工作台
               </Typography.Title>
-              <Typography.Text type="secondary">监控中竞品会每 {monitorIntervalMs / 1000} 秒自动采集一次页面。</Typography.Text>
+              <Typography.Text type="secondary">
+                监控中竞品会每 {monitorIntervalMs / 1000} 秒自动采集一次页面
+                {secondsUntilNextRun === null ? "。" : `，下次采集约 ${secondsUntilNextRun} 秒后。`}
+              </Typography.Text>
             </Space>
           }
         >
