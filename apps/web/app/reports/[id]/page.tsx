@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { AppShell } from "../../app-shell";
+import { hydrateCompetitorsFromCookie } from "../../../lib/mvp-persistence";
 import { getCompetitor, getReport, markReportRead } from "../../../lib/mvp-store";
 import { hasCompletedOnboardingForPage, requirePageSession } from "../../../lib/page-session";
 import { ReportDetailClient } from "./report-detail-client";
@@ -16,6 +18,8 @@ export default async function ReportDetailPage({ params }: ReportDetailPageProps
   }
 
   const { id } = await params;
+  const cookieStore = await cookies();
+  hydrateCompetitorsFromCookie(session.userId, cookieStore.toString());
   const report = getReport(session.userId, id);
   if (!report) {
     notFound();

@@ -1,5 +1,6 @@
 import { requireSession } from "../../../lib/api-auth";
 import { executeCollectionForCompetitor } from "../../../lib/task-execution";
+import { hydrateCompetitorsFromCookie } from "../../../lib/mvp-persistence";
 import { getCompetitor } from "../../../lib/mvp-store";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ interface TaskBody {
 export async function POST(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   const body = (await request.json().catch(() => ({}))) as TaskBody;
   if (!body.competitorId) {

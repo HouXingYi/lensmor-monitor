@@ -1,4 +1,5 @@
 import { requireSession } from "../../../../lib/api-auth";
+import { createCompetitorsCookie, hydrateCompetitorsFromCookie } from "../../../../lib/mvp-persistence";
 import {
   deleteCompetitor,
   getCompetitor,
@@ -38,6 +39,7 @@ function validateLinks(links: CompetitorLink[]): string | null {
 export async function GET(request: Request, context: RouteContext): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   const competitor = getCompetitor(session.userId, await getId(context));
   if (!competitor) {
@@ -50,6 +52,7 @@ export async function GET(request: Request, context: RouteContext): Promise<Resp
 export async function PATCH(request: Request, context: RouteContext): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   const body = (await request.json().catch(() => ({}))) as PatchBody;
   if (body.status && !isValidStatus(body.status)) {
@@ -77,7 +80,11 @@ export async function PATCH(request: Request, context: RouteContext): Promise<Re
     if (!competitor) {
       return Response.json({ error: "竞品不存在。" }, { status: 404 });
     }
-    return Response.json(competitor);
+    return Response.json(competitor, {
+      headers: {
+        "Set-Cookie": createCompetitorsCookie(session.userId),
+      },
+    });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "竞品信息无效。" }, { status: 400 });
   }
@@ -86,11 +93,17 @@ export async function PATCH(request: Request, context: RouteContext): Promise<Re
 export async function DELETE(request: Request, context: RouteContext): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   const deleted = deleteCompetitor(session.userId, await getId(context));
   if (!deleted) {
     return Response.json({ error: "竞品不存在。" }, { status: 404 });
   }
 
-  return new Response(null, { status: 204 });
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Set-Cookie": createCompetitorsCookie(session.userId),
+    },
+  });
 }

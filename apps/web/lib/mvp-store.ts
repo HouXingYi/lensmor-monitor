@@ -137,6 +137,14 @@ export function listCompetitors(ownerId: string): CompetitorRecord[] {
   return Array.from(competitors.values()).filter((competitor) => competitor.ownerId === ownerId);
 }
 
+export function hydrateCompetitors(ownerId: string, records: CompetitorRecord[]): void {
+  for (const record of records) {
+    if (record.ownerId === ownerId) {
+      competitors.set(record.id, record);
+    }
+  }
+}
+
 export function getCompetitor(ownerId: string, id: string): CompetitorRecord | undefined {
   const competitor = competitors.get(id);
   if (!competitor || competitor.ownerId !== ownerId) return undefined;

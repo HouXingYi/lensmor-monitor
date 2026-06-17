@@ -1,4 +1,5 @@
 import { requireSession } from "../../../../lib/api-auth";
+import { hydrateCompetitorsFromCookie } from "../../../../lib/mvp-persistence";
 import { listCompetitors } from "../../../../lib/mvp-store";
 import { executeCollectionForCompetitor } from "../../../../lib/task-execution";
 
@@ -7,6 +8,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   const origin = new URL(request.url).origin;
   const competitors = listCompetitors(session.userId);

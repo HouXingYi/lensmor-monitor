@@ -1,4 +1,5 @@
 import { requireSession } from "../../../lib/api-auth";
+import { createCompetitorsCookie } from "../../../lib/mvp-persistence";
 import { createCompetitor, saveProductProfile } from "../../../lib/mvp-store";
 import { createOnboardingCookie } from "../../../lib/session";
 
@@ -35,8 +36,8 @@ function hasRequiredProductFields(product: OnboardingBody["product"]): product i
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const { session, response } = await requireSession(request);
-  if (response) return response;
+  const { session, response: authResponse } = await requireSession(request);
+  if (authResponse) return authResponse;
 
   const body = (await request.json().catch(() => ({}))) as OnboardingBody;
 
@@ -75,12 +76,8 @@ export async function POST(request: Request): Promise<Response> {
     }),
   );
 
-  return Response.json(
-    { profile, competitors },
-    {
-      headers: {
-        "Set-Cookie": createOnboardingCookie(),
-      },
-    },
-  );
+  const onboardingResponse = Response.json({ profile, competitors });
+  onboardingResponse.headers.append("Set-Cookie", createOnboardingCookie());
+  onboardingResponse.headers.append("Set-Cookie", createCompetitorsCookie(session.userId));
+  return onboardingResponse;
 }

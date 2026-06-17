@@ -61,6 +61,36 @@ describe("competitors API", () => {
     expect(deleted.status).toBe(204);
   });
 
+  it("hydrates competitors from the persistence cookie after memory resets", async () => {
+    resetMvpStore();
+    const cookie = await sessionCookie();
+
+    const created = await POST(
+      new Request("http://localhost/api/competitors", {
+        method: "POST",
+        headers: { cookie },
+        body: JSON.stringify({
+          name: "Acme AI",
+          mainDomain: "acme-ai.mock",
+          links: [{ label: "Pricing", url: "https://acme-ai.mock/pricing" }],
+        }),
+      }),
+    );
+    const createdBody = (await created.json()) as { id: string };
+    const persistedCookie = created.headers.get("set-cookie");
+    resetMvpStore();
+
+    const fetched = await getCompetitor(
+      new Request(`http://localhost/api/competitors/${createdBody.id}`, {
+        headers: { cookie: `${cookie}; ${persistedCookie ?? ""}` },
+      }),
+      { params: { id: createdBody.id } },
+    );
+
+    expect(fetched.status).toBe(200);
+    expect(((await fetched.json()) as { name: string }).name).toBe("Acme AI");
+  });
+
   it("rejects more than 10 associated links", async () => {
     resetMvpStore();
     const cookie = await sessionCookie();

@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { type ReportPriority } from "@lensmor/domain";
@@ -9,6 +10,7 @@ import {
   listReports,
   type ReportFilters,
 } from "../../lib/mvp-store";
+import { hydrateCompetitorsFromCookie } from "../../lib/mvp-persistence";
 import { hasCompletedOnboardingForPage, requirePageSession } from "../../lib/page-session";
 import { InboxClient } from "./inbox-client";
 
@@ -31,6 +33,8 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
   if (!(await hasCompletedOnboardingForPage())) {
     redirect("/onboarding");
   }
+  const cookieStore = await cookies();
+  hydrateCompetitorsFromCookie(session.userId, cookieStore.toString());
 
   const params = await searchParams;
   const filters: ReportFilters = {};

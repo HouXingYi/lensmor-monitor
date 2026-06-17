@@ -1,4 +1,5 @@
 import { requireSession } from "../../../lib/api-auth";
+import { createCompetitorsCookie, hydrateCompetitorsFromCookie } from "../../../lib/mvp-persistence";
 import { createCompetitor, listCompetitors, type CompetitorLink } from "../../../lib/mvp-store";
 
 export const runtime = "nodejs";
@@ -19,6 +20,7 @@ function validateLinks(links: CompetitorLink[]): string | null {
 export async function GET(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   return Response.json({ competitors: listCompetitors(session.userId) });
 }
@@ -26,6 +28,7 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const { session, response } = await requireSession(request);
   if (response) return response;
+  hydrateCompetitorsFromCookie(session.userId, request.headers.get("cookie"));
 
   const body = (await request.json().catch(() => ({}))) as CompetitorBody;
   if (!body.name || !body.mainDomain) {
@@ -45,5 +48,10 @@ export async function POST(request: Request): Promise<Response> {
     links,
   });
 
-  return Response.json(competitor, { status: 201 });
+  return Response.json(competitor, {
+    status: 201,
+    headers: {
+      "Set-Cookie": createCompetitorsCookie(session.userId),
+    },
+  });
 }
