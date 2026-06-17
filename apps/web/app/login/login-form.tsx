@@ -1,7 +1,8 @@
 "use client";
 
+import { Alert, Button, Form, Input } from "antd";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 
 interface LoginFormProps {
   nextPath: string;
@@ -14,8 +15,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit() {
     setSubmitting(true);
     setError(null);
 
@@ -39,32 +39,29 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   }
 
   return (
-    <form className="login-form" onSubmit={handleSubmit}>
-      <label className="login-field">
-        <span>邮箱</span>
-        <input
+    <Form layout="vertical" onFinish={handleSubmit}>
+      <Form.Item label="邮箱" required>
+        <Input
           autoComplete="email"
           inputMode="email"
           onChange={(event) => setEmail(event.target.value)}
-          required
+          size="large"
           type="email"
           value={email}
         />
-      </label>
-      <label className="login-field">
-        <span>密码</span>
-        <input
+      </Form.Item>
+      <Form.Item label="密码" required>
+        <Input.Password
           autoComplete="current-password"
           onChange={(event) => setPassword(event.target.value)}
-          required
-          type="password"
+          size="large"
           value={password}
         />
-      </label>
-      {error ? <div className="login-error">{error}</div> : null}
-      <button className="login-button" disabled={submitting} type="submit">
-        {submitting ? "登录中..." : "登录"}
-      </button>
-    </form>
+      </Form.Item>
+      {error ? <Alert message={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
+      <Button block htmlType="submit" loading={submitting} size="large" type="primary">
+        登录
+      </Button>
+    </Form>
   );
 }

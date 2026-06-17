@@ -1,5 +1,7 @@
 import { type AnalysisReportDraft, type CollectionTask, type ReportPriority } from "@lensmor/domain";
 
+import { type CollectedMockSnapshot } from "./mock-pages";
+
 export type CompetitorStatus = "monitoring" | "paused" | "collecting";
 export type FeedbackType = "useful" | "wrong" | "not_important";
 export type WrongReason =
@@ -66,6 +68,7 @@ interface MvpStoreState {
   competitors: Map<string, CompetitorRecord>;
   reports: Map<string, ReportRecord>;
   tasks: Map<string, TaskRecord>;
+  mockSnapshots: Map<string, CollectedMockSnapshot>;
   readReports: Set<string>;
   feedback: Map<string, ReportFeedbackRecord>;
 }
@@ -83,17 +86,19 @@ const store =
     competitors: new Map<string, CompetitorRecord>(),
     reports: new Map<string, ReportRecord>(),
     tasks: new Map<string, TaskRecord>(),
+    mockSnapshots: new Map<string, CollectedMockSnapshot>(),
     readReports: new Set<string>(),
     feedback: new Map<string, ReportFeedbackRecord>(),
   });
 
-const { productProfiles, competitors, reports, tasks, readReports, feedback } = store;
+const { productProfiles, competitors, reports, tasks, mockSnapshots, readReports, feedback } = store;
 
 export function resetMvpStore(): void {
   productProfiles.clear();
   competitors.clear();
   reports.clear();
   tasks.clear();
+  mockSnapshots.clear();
   readReports.clear();
   feedback.clear();
 }
@@ -198,6 +203,23 @@ export function listTasksForCompetitor(ownerId: string, competitorId: string): T
   return Array.from(tasks.values())
     .filter((task) => task.ownerId === ownerId && task.competitorId === competitorId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function mockSnapshotKey(ownerId: string, competitorId: string): string {
+  return `${ownerId}:${competitorId}`;
+}
+
+export function getLastMockSnapshot(ownerId: string, competitorId: string): CollectedMockSnapshot | undefined {
+  return mockSnapshots.get(mockSnapshotKey(ownerId, competitorId));
+}
+
+export function saveLastMockSnapshot(
+  ownerId: string,
+  competitorId: string,
+  snapshot: CollectedMockSnapshot,
+): CollectedMockSnapshot {
+  mockSnapshots.set(mockSnapshotKey(ownerId, competitorId), snapshot);
+  return snapshot;
 }
 
 export interface ReportFilters {

@@ -1,10 +1,45 @@
 "use client";
 
+import { Alert, Button, Card, Col, Empty, Form, Input, List, Modal, Row, Space, Tag, Typography } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { type CompetitorRecord } from "../../lib/mvp-store";
+import { type CompetitorLink, type CompetitorRecord } from "../../lib/mvp-store";
+
+const monitorIntervalMs = 60_000;
+
+interface MockCompetitorPreset {
+  id: string;
+  name: string;
+  mainDomain: string;
+  description: string;
+  links: CompetitorLink[];
+}
+
+const mockCompetitorPresets: MockCompetitorPreset[] = [
+  {
+    id: "acme-pricing",
+    name: "Acme AI",
+    mainDomain: "acme-ai.mock",
+    description: "定价页：CTA、价格和页脚噪音变化",
+    links: [{ label: "Pricing", url: "https://acme-ai.mock/pricing" }],
+  },
+  {
+    id: "acme-product",
+    name: "Acme AI Product",
+    mainDomain: "acme-ai-product.mock",
+    description: "产品页：新功能发布变化",
+    links: [{ label: "Product", url: "https://acme-ai.mock/product" }],
+  },
+  {
+    id: "nova-home",
+    name: "Nova Stack",
+    mainDomain: "nova-stack.mock",
+    description: "首页：布局和首屏文案变化",
+    links: [{ label: "Home", url: "https://nova-stack.mock" }],
+  },
+];
 
 const statusLabels: Record<CompetitorRecord["status"], string> = {
   monitoring: "监控中",
@@ -12,22 +47,33 @@ const statusLabels: Record<CompetitorRecord["status"], string> = {
   collecting: "采集中",
 };
 
+const statusColors: Record<CompetitorRecord["status"], string> = {
+  monitoring: "green",
+  paused: "default",
+  collecting: "blue",
+};
+
 export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: CompetitorRecord[] }) {
   const router = useRouter();
   const [competitors, setCompetitors] = useState(initialCompetitors);
   const [name, setName] = useState("");
   const [mainDomain, setMainDomain] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [monitorMessage, setMonitorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [presetModalOpen, setPresetModalOpen] = useState(false);
+  const scheduledInFlightRef = useRef(false);
 
-  async function createCompetitor(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function createCompetitor() {
     setError(null);
 
     const payload = {
       name: name.trim(),
       mainDomain: mainDomain.trim(),
-      links: [],
+      links:
+        mockCompetitorPresets.find((preset) => preset.id === selectedPresetId)?.links ??
+        ([] satisfies CompetitorLink[]),
     };
 
     if (!payload.name || !payload.mainDomain) {
@@ -53,7 +99,16 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
     setCompetitors((current) => [created, ...current]);
     setName("");
     setMainDomain("");
+    setSelectedPresetId(null);
     router.refresh();
+  }
+
+  function applyPreset(preset: MockCompetitorPreset) {
+    setName(preset.name);
+    setMainDomain(preset.mainDomain);
+    setSelectedPresetId(preset.id);
+    setPresetModalOpen(false);
+    setError(null);
   }
 
   async function updateStatus(competitor: CompetitorRecord) {
@@ -88,72 +143,144 @@ export function CompetitorsClient({ initialCompetitors }: { initialCompetitors: 
     router.refresh();
   }
 
+  useEffect(() => {
+    if (!competitors.some((competitor) => competitor.status === "monitoring")) return;
+
+    const intervalId = window.setInterval(() => {
+      if (scheduledInFlightRef.current) return;
+      scheduledInFlightRef.current = true;
+      fetch("/api/tasks/scheduled", { method: "POST" })
+        .then(async (response) => {
+          const body = (await response.json().catch(() => ({}))) as { checked?: number; skipped?: number; error?: string };
+          if (!response.ok) {
+            throw new Error(body.error ?? "定时监控失败。");
+          }
+          setMonitorMessage(`定时监控完成：采集 ${body.checked ?? 0} 个，跳过 ${body.skipped ?? 0} 个。`);
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setMonitorMessage(error instanceof Error ? error.message : "定时监控失败。");
+        })
+        .finally(() => {
+          scheduledInFlightRef.current = false;
+        });
+    }, monitorIntervalMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [competitors, router]);
+
   return (
-    <div className="workspace-grid">
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">竞品</span>
-            <h1>监控工作台</h1>
-          </div>
-          <Link className="secondary-link" href="/inbox">
-            打开收件箱
-          </Link>
-        </div>
+    <Row gutter={[16, 16]}>
+      <Col lg={16} xs={24}>
+        <Card
+          extra={
+            <Link href="/inbox">
+              <Button>打开收件箱</Button>
+            </Link>
+          }
+          title={
+            <Space orientation="vertical" size={0}>
+              <Typography.Text type="secondary">竞品</Typography.Text>
+              <Typography.Title level={2} style={{ margin: 0 }}>
+                监控工作台
+              </Typography.Title>
+              <Typography.Text type="secondary">监控中竞品会每 {monitorIntervalMs / 1000} 秒自动采集一次 mock 页面。</Typography.Text>
+            </Space>
+          }
+        >
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            {monitorMessage ? <Alert message={monitorMessage} showIcon type="success" /> : null}
+            {competitors.length > 0 ? (
+              <List
+                dataSource={competitors}
+                renderItem={(competitor) => (
+                  <List.Item
+                    actions={[
+                      <Link href={`/competitors/${competitor.id}`} key="detail">
+                        查看详情
+                      </Link>,
+                      <Button key="status" onClick={() => updateStatus(competitor)} size="small">
+                        {competitor.status === "paused" ? "恢复" : "暂停"}
+                      </Button>,
+                      <Button danger key="delete" onClick={() => deleteCompetitor(competitor.id)} size="small">
+                        删除
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      description={competitor.mainDomain}
+                      title={
+                        <Space>
+                          <Link href={`/competitors/${competitor.id}`}>{competitor.name}</Link>
+                          <Tag color={statusColors[competitor.status]}>{statusLabels[competitor.status]}</Tag>
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty description="还没有竞品，添加至少一个竞品后即可开始监控网站变化。" />
+            )}
+          </Space>
+        </Card>
+      </Col>
 
-        {competitors.length > 0 ? (
-          <div className="competitor-list">
-            {competitors.map((competitor) => (
-              <article className="competitor-card" key={competitor.id}>
-                <div>
-                  <h2>
-                    <Link href={`/competitors/${competitor.id}`}>{competitor.name}</Link>
-                  </h2>
-                  <p>{competitor.mainDomain}</p>
-                </div>
-                <span className={`status-pill status-${competitor.status}`}>{statusLabels[competitor.status]}</span>
-                <div className="card-actions">
-                  <Link href={`/competitors/${competitor.id}`}>查看详情</Link>
-                  <button onClick={() => updateStatus(competitor)} type="button">
-                    {competitor.status === "paused" ? "恢复" : "暂停"}
-                  </button>
-                  <button className="danger-action" onClick={() => deleteCompetitor(competitor.id)} type="button">
-                    删除
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <h2>还没有竞品</h2>
-            <p>添加至少一个竞品后，即可开始监控网站变化。</p>
-          </div>
-        )}
-      </section>
+      <Col lg={8} xs={24}>
+        <Card
+          extra={<Button onClick={() => setPresetModalOpen(true)}>选择 mock 竞品</Button>}
+          title="添加竞品"
+        >
+          <Form layout="vertical" onFinish={createCompetitor}>
+            <Form.Item label="名称" required>
+              <Input
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setSelectedPresetId(null);
+                }}
+                placeholder="Orbit CRM"
+                value={name}
+              />
+            </Form.Item>
+            <Form.Item label="主域名" required>
+              <Input
+                onChange={(event) => {
+                  setMainDomain(event.target.value);
+                  setSelectedPresetId(null);
+                }}
+                placeholder="orbit-crm.mock"
+                value={mainDomain}
+              />
+            </Form.Item>
+            {error ? <Alert message={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
+            <Button block htmlType="submit" loading={submitting} type="primary">
+              + 添加竞品
+            </Button>
+          </Form>
+        </Card>
+      </Col>
 
-      <aside className="panel">
-        <span className="eyebrow">添加竞品</span>
-        <h2>追踪另一个模拟竞品</h2>
-        <form className="stack-form" onSubmit={createCompetitor}>
-          <label>
-            <span>名称</span>
-            <input onChange={(event) => setName(event.target.value)} placeholder="Orbit CRM" value={name} />
-          </label>
-          <label>
-            <span>主域名</span>
-            <input
-              onChange={(event) => setMainDomain(event.target.value)}
-              placeholder="orbit-crm.mock"
-              value={mainDomain}
-            />
-          </label>
-          {error ? <div className="onboarding-error">{error}</div> : null}
-          <button className="login-button" disabled={submitting} type="submit">
-            {submitting ? "添加中..." : "+ 添加竞品"}
-          </button>
-        </form>
-      </aside>
-    </div>
+      <Modal
+        footer={null}
+        onCancel={() => setPresetModalOpen(false)}
+        open={presetModalOpen}
+        title="选择一个 mock 竞品"
+      >
+        <List
+          dataSource={mockCompetitorPresets}
+          renderItem={(preset) => (
+            <List.Item
+              actions={[
+                <Button key="select" onClick={() => applyPreset(preset)} type={selectedPresetId === preset.id ? "primary" : "default"}>
+                  选择并填入
+                </Button>,
+              ]}
+            >
+              <List.Item.Meta description={`${preset.mainDomain} · ${preset.description}`} title={preset.name} />
+            </List.Item>
+          )}
+        />
+      </Modal>
+    </Row>
   );
 }

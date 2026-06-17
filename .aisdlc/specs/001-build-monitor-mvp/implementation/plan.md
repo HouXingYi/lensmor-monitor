@@ -472,6 +472,76 @@
   pr: 未创建
   changed_files: `apps/worker/package.json`, `apps/worker/src/litellm-client.ts`, `apps/web/__tests__/auth-boundary.test.ts`, `apps/web/__tests__/onboarding.test.ts`, `apps/web/app/app-shell.tsx`, `apps/web/app/layout.tsx`, `apps/web/app/page.tsx`, `apps/web/app/login/page.tsx`, `apps/web/app/login/login-form.tsx`, `apps/web/app/onboarding/page.tsx`, `apps/web/app/onboarding/onboarding-form.tsx`, `apps/web/app/competitors/page.tsx`, `apps/web/app/competitors/competitors-client.tsx`, `apps/web/app/competitors/[id]/page.tsx`, `apps/web/app/competitors/[id]/competitor-detail-client.tsx`, `apps/web/app/inbox/page.tsx`, `apps/web/app/reports/[id]/page.tsx`, `apps/web/app/reports/[id]/report-feedback-form.tsx`, `apps/web/app/api/auth/login/route.ts`, `apps/web/app/api/auth/logout/route.ts`, `apps/web/app/api/onboarding/route.ts`, `apps/web/app/api/competitors/route.ts`, `apps/web/app/api/competitors/[id]/route.ts`, `apps/web/app/api/reports/[id]/route.ts`, `apps/web/app/api/reports/[id]/feedback/route.ts`, `apps/web/app/api/tasks/route.ts`, `apps/web/app/api/tasks/[id]/route.ts`, `apps/web/lib/api-auth.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/lib/page-session.ts`, `apps/web/lib/session.ts`, `apps/web/app/globals.css`, `apps/web/package.json`, `pnpm-lock.yaml`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
 
+### I2 补充批次：真实 mock 采集、定时监控与 LLM 报告
+
+- [x] **状态**：完成
+
+**触发原因：**
+- 用户已在 `.env.local` 放入真实 LLM key 与 URL，要求手动刷新和监控定时任务都真实抓取 mock 页面数据，并真实调用 LLM 形成报告。
+
+**修改点：**
+- 新增 mock 页面运行时：服务端维护当前 mock 页面快照，启动后每 30 秒随机轮换页面状态。
+- 新增 `/mock-pages/[site]/[page]` HTML 路由，任务执行时通过 HTTP 抓取当前 mock 页面并解析嵌入的页面状态。
+- 手动刷新 `/api/tasks` 改为复用统一执行器：抓取 mock 页面、基于上次采集快照构造 diff、调用 LLM、保存任务与报告。
+- 新增 `/api/tasks/scheduled` 批量定时入口，只处理当前用户下 `monitoring` 状态竞品，`paused` 状态跳过。
+- 竞品详情页在“监控中”状态下每 60 秒自动采集当前竞品；暂停后停止定时器；手动刷新仍立即触发同一真实链路。
+- 竞品工作台在有“监控中”竞品时每 60 秒调用批量定时入口，便于停留在列表页时持续监控。
+- 添加竞品面板新增 3 个 mock 竞品预设：Acme AI 定价页、Acme AI 产品页、Nova Stack 首页；点击后自动填入名称和主域名，再沿用现有添加流程。
+- liteLLM client 改为真实网关默认调用，支持 `LITELLM_MODEL`，未配置时默认 `claude-sonnet-4-6`，并强化中文 JSON schema prompt 与响应解析。
+- `.env.example` 补充 `LITELLM_MODEL="claude-sonnet-4-6"`；未读取或写入 `.env.local` 中的真实密钥。
+
+**验证：**
+- Result: PASS。`pnpm typecheck` 全部 workspace 通过。
+- Result: PASS。`pnpm test` 9 个测试文件、23 个测试通过。
+- Result: PASS。`pnpm lint` 通过。
+- Result: PASS。`pnpm test:e2e` 1 个 e2e smoke 测试通过。
+- Result: PASS。`pnpm --filter @lensmor/web build` 生产构建通过；仅提示 Next.js 16 的 `middleware` 文件约定迁移警告。
+- Result: PASS。真实 liteLLM smoke 调用成功，返回结构信号：`title`, `priority=medium`, `summaries=1`, `actions=3`。
+
+**审计信息：**
+- repo: `root`
+  branch: `001-build-monitor-mvp`
+  commit: 未提交（本次对话用户未要求 commit）
+  pr: 未创建
+  changed_files: `.env.example`, `apps/web/app/api/tasks/route.ts`, `apps/web/app/api/tasks/scheduled/route.ts`, `apps/web/app/mock-pages/[site]/[page]/route.ts`, `apps/web/app/competitors/[id]/competitor-detail-client.tsx`, `apps/web/app/competitors/competitors-client.tsx`, `apps/web/app/globals.css`, `apps/web/lib/mock-pages.ts`, `apps/web/lib/task-execution.ts`, `apps/web/lib/mvp-store.ts`, `apps/web/lib/session.ts`, `apps/worker/src/litellm-client.ts`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
+
+### I2 补充批次：前端 Ant Design 统一改造
+
+- [x] **状态**：完成
+
+**触发原因：**
+- 用户反馈当前前端样式较差，希望安装并使用 Ant Design，将前端页面整体改为 AntD 组件风格；添加竞品预设选择改为弹窗选择后填入表单。
+
+**修改点：**
+- 安装 `antd` 与 `@ant-design/nextjs-registry`，在 App Router 根布局接入 `AntdRegistry`、`ConfigProvider`、中文 locale 与主题 token。
+- 新增 `apps/web/app/antd-provider.tsx`，统一提供 AntD 主题与 App 上下文。
+- 登录页、应用壳、onboarding、竞品工作台、竞品详情、收件箱、报告详情与反馈表单均迁移到 AntD 的 Layout、Card、Form、Input、Button、List、Tag、Alert、Modal、Empty、Descriptions、Select 等组件。
+- 添加竞品预设选择由页面内卡片改为 Modal 弹窗：选择后填入名称与主域名，再沿用现有添加流程。
+- 新增 `apps/web/app/inbox/inbox-filters.tsx`，用 AntD Select/Input/Button 实现收件箱筛选。
+- 将 `globals.css` 收敛为少量页面背景、容器、导航和布局辅助样式，主视觉样式交给 AntD。
+- 生产构建发现 `/onboarding` 静态页面直接 Server Component 渲染 AntD 存在预渲染问题，已将 onboarding page 外壳调整为客户端边界，构建通过。
+- 人工打开首页发现 AntD v6 对 `Space direction` 的废弃警告会触发 Next 开发错误遮罩；已按 AntD v6 迁移要求将所有 `Space` 的 `direction` 改为 `orientation`。
+- 人工打开收件箱发现 Server Page 直接渲染 AntD 复合组件会触发 `Element type is invalid`；已将 `/inbox`、`/reports/[id]`、`/login` 的 AntD UI 拆到客户端组件，服务端页面仅负责鉴权、取数和传递可序列化 props。
+- 人工手动刷新发现 Web app 运行目录为 `apps/web` 时无法自动读取仓库根目录 `.env.local`，导致 liteLLM 配置缺失；已在服务端 liteLLM client 中增加从当前目录向上查找 `.env.local`/`.env` 的本地开发兜底，仅在 `process.env` 缺失时读取。
+
+**验证：**
+- Result: PASS。`pnpm typecheck` 全部 workspace 通过。
+- Result: PASS。`pnpm lint` 通过。
+- Result: PASS。`pnpm test` 9 个测试文件、23 个测试通过。
+- Result: PASS。`pnpm test:e2e` 1 个 e2e smoke 测试通过。
+- Result: PASS。`pnpm --filter @lensmor/web build` 生产构建通过；仅提示 Next.js 16 的 `middleware` 文件约定迁移警告。
+- Result: PASS。修复 `Space orientation` 后，`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm --filter @lensmor/web build` 均通过。
+- Result: PASS。拆分 AntD 客户端渲染边界后，`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm --filter @lensmor/web build` 均通过。
+- Result: PASS。从 `apps/web` 工作目录直接调用真实 liteLLM client 成功，返回结构信号：`title`, `priority=urgent`, `summaries=1`, `actions=3`。
+- Result: PASS。liteLLM env 兜底修复后，`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm --filter @lensmor/web build` 均通过。
+
+**审计信息：**
+- repo: `root`
+  branch: `001-build-monitor-mvp`
+  commit: 未提交（本次对话用户未要求 commit）
+  pr: 未创建
+  changed_files: `apps/web/package.json`, `pnpm-lock.yaml`, `apps/web/app/antd-provider.tsx`, `apps/web/app/layout.tsx`, `apps/web/app/app-shell.tsx`, `apps/web/app/globals.css`, `apps/web/app/login/page.tsx`, `apps/web/app/login/login-page-client.tsx`, `apps/web/app/login/login-form.tsx`, `apps/web/app/onboarding/page.tsx`, `apps/web/app/onboarding/onboarding-form.tsx`, `apps/web/app/competitors/competitors-client.tsx`, `apps/web/app/competitors/[id]/competitor-detail-client.tsx`, `apps/web/app/inbox/page.tsx`, `apps/web/app/inbox/inbox-client.tsx`, `apps/web/app/inbox/inbox-filters.tsx`, `apps/web/app/reports/[id]/page.tsx`, `apps/web/app/reports/[id]/report-detail-client.tsx`, `apps/web/app/reports/[id]/report-feedback-form.tsx`, `.aisdlc/specs/001-build-monitor-mvp/implementation/plan.md`
+
 ## I1-DoD 自检
 
 - [x] 计划范围与 `requirements/*`、`design/*` 一致且可追溯。

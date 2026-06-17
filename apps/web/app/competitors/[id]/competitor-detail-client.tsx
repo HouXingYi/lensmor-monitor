@@ -1,10 +1,13 @@
 "use client";
 
+import { Alert, Button, Card, Col, Empty, Form, Input, List, Row, Space, Tag, Typography } from "antd";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { type CompetitorLink, type CompetitorRecord, type ReportRecord, type TaskRecord } from "../../../lib/mvp-store";
+
+const monitorIntervalMs = 60_000;
 
 const statusLabels: Record<CompetitorRecord["status"], string> = {
   monitoring: "监控中",
@@ -25,6 +28,27 @@ const priorityLabels: Record<ReportRecord["priority"], string> = {
   urgent: "紧急",
   medium: "中等",
   low: "低",
+};
+
+const statusColors: Record<CompetitorRecord["status"], string> = {
+  monitoring: "green",
+  paused: "default",
+  collecting: "blue",
+};
+
+const taskStatusColors: Record<TaskRecord["status"], string> = {
+  queued: "blue",
+  collecting: "blue",
+  diffing: "blue",
+  analyzing: "blue",
+  completed: "green",
+  failed: "red",
+};
+
+const priorityColors: Record<ReportRecord["priority"], string> = {
+  urgent: "red",
+  medium: "blue",
+  low: "default",
 };
 
 export function CompetitorDetailClient({
@@ -49,6 +73,9 @@ export function CompetitorDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [scheduledRunning, setScheduledRunning] = useState(false);
+  const [lastScheduledAt, setLastScheduledAt] = useState<string | null>(null);
+  const scheduledInFlightRef = useRef(false);
 
   function addLink() {
     const label = linkLabel.trim();
@@ -77,8 +104,7 @@ export function CompetitorDetailClient({
     setError(null);
   }
 
-  async function saveCompetitor(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveCompetitor() {
     setError(null);
     setMessage(null);
 
@@ -128,151 +154,223 @@ export function CompetitorDetailClient({
     router.refresh();
   }
 
+  function applyTaskResult(body: { task: TaskRecord; report?: ReportRecord }, successMessage: string) {
+    setLatestTask(body.task);
+    if (body.report) {
+      setReports((current) => [body.report as ReportRecord, ...current]);
+      setMessage(successMessage);
+    } else {
+      setMessage("采集已完成，本次没有值得生成报告的变化。");
+    }
+    router.refresh();
+  }
+
+  async function runCollection(triggerType: "manual" | "scheduled") {
+    const response = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ competitorId: competitor.id, triggerType }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? (triggerType === "manual" ? "手动刷新失败。" : "定时监控失败。"));
+    }
+
+    return (await response.json()) as { task: TaskRecord; report?: ReportRecord };
+  }
+
   async function manualRefresh() {
     setError(null);
     setMessage(null);
     setRefreshing(true);
 
-    const response = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ competitorId: competitor.id, triggerType: "manual" }),
-    });
-    setRefreshing(false);
-
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(body.error ?? "手动刷新失败。");
-      return;
+    try {
+      const body = await runCollection("manual");
+      applyTaskResult(body, "手动刷新已完成，并生成了一份报告。");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "手动刷新失败。");
+    } finally {
+      setRefreshing(false);
     }
-
-    const body = (await response.json()) as { task: TaskRecord; report?: ReportRecord };
-    setLatestTask(body.task);
-    if (body.report) {
-      setReports((current) => [body.report as ReportRecord, ...current]);
-      setMessage("手动刷新已完成，并生成了一份报告。");
-    } else {
-      setMessage("手动刷新已完成，本次没有值得生成报告的变化。");
-    }
-    router.refresh();
   }
 
+  useEffect(() => {
+    if (competitor.status !== "monitoring") return;
+
+    const intervalId = window.setInterval(() => {
+      if (scheduledInFlightRef.current) return;
+      scheduledInFlightRef.current = true;
+      setScheduledRunning(true);
+      runCollection("scheduled")
+        .then((body) => {
+          applyTaskResult(body, "定时监控已完成，并生成了一份报告。");
+          setLastScheduledAt(new Date().toISOString());
+        })
+        .catch((error: unknown) => {
+          setError(error instanceof Error ? error.message : "定时监控失败。");
+        })
+        .finally(() => {
+          scheduledInFlightRef.current = false;
+          setScheduledRunning(false);
+        });
+    }, monitorIntervalMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [competitor.id, competitor.status]);
+
   return (
-    <div className="detail-grid">
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">竞品详情</span>
-            <h1>{competitor.name}</h1>
-            <p>{competitor.mainDomain}</p>
-          </div>
-          <span className={`status-pill status-${competitor.status}`}>{statusLabels[competitor.status]}</span>
-        </div>
+    <Row gutter={[16, 16]}>
+      <Col lg={16} xs={24}>
+        <Card>
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            <Space align="start" className="split-row">
+              <Space orientation="vertical" size={0}>
+                <Typography.Text type="secondary">竞品详情</Typography.Text>
+                <Typography.Title level={2} style={{ margin: 0 }}>
+                  {competitor.name}
+                </Typography.Title>
+                <Typography.Text type="secondary">{competitor.mainDomain}</Typography.Text>
+              </Space>
+              <Tag color={statusColors[competitor.status]}>{statusLabels[competitor.status]}</Tag>
+            </Space>
 
-        <div className="toolbar">
-          <button className="secondary-button" onClick={toggleStatus} type="button">
-            {competitor.status === "paused" ? "恢复监控" : "暂停监控"}
-          </button>
-          <button className="login-button" disabled={refreshing || competitor.status === "paused"} onClick={manualRefresh} type="button">
-            {refreshing ? "刷新中..." : "手动刷新"}
-          </button>
-        </div>
+            <Space wrap>
+              <Button onClick={toggleStatus}>{competitor.status === "paused" ? "恢复监控" : "暂停监控"}</Button>
+              <Button disabled={competitor.status === "paused"} loading={refreshing} onClick={manualRefresh} type="primary">
+                手动刷新
+              </Button>
+            </Space>
 
-        {latestTask ? (
-          <div className={`task-banner task-${latestTask.status}`}>
-            <strong>最新任务：{taskStatusLabels[latestTask.status]}</strong>
-            <span>
-              {latestTask.failureReason ??
-                (latestTask.reportId ? `已生成报告：${latestTask.reportId}` : "未生成报告。")}
-            </span>
-          </div>
-        ) : (
-          <div className="task-banner">
-            <strong>暂无采集任务</strong>
-            <span>点击手动刷新，生成第一份分析报告。</span>
-          </div>
-        )}
+            <Typography.Text type="secondary">
+              {competitor.status === "paused"
+                ? "定时监控已暂停。"
+                : `定时监控每 ${monitorIntervalMs / 1000} 秒采集一次 mock 页面。${
+                    scheduledRunning
+                      ? "本轮采集中..."
+                      : lastScheduledAt
+                        ? `上次采集：${new Date(lastScheduledAt).toLocaleString("zh-CN")}`
+                        : ""
+                  }`}
+            </Typography.Text>
 
-        {message ? <div className="success-message">{message}</div> : null}
-        {error ? <div className="onboarding-error">{error}</div> : null}
-
-        <form className="stack-form" onSubmit={saveCompetitor}>
-          <label>
-            <span>名称</span>
-            <input onChange={(event) => setName(event.target.value)} required value={name} />
-          </label>
-          <label>
-            <span>主域名</span>
-            <input onChange={(event) => setMainDomain(event.target.value)} required value={mainDomain} />
-          </label>
-
-          <div className="link-editor">
-            <h2>关联链接</h2>
-            {links.length > 0 ? (
-              <ul className="manual-list">
-                {links.map((link, index) => (
-                  <li key={`${link.label}-${link.url}`}>
-                    <span>
-                      {link.label} <small>{link.url}</small>
-                    </span>
-                    <button onClick={() => setLinks((current) => current.filter((_, itemIndex) => itemIndex !== index))} type="button">
-                      移除
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            {latestTask ? (
+              <Alert
+                description={
+                  latestTask.failureReason ??
+                  (latestTask.reportId ? `已生成报告：${latestTask.reportId}` : "未生成报告。")
+                }
+                message={<><Tag color={taskStatusColors[latestTask.status]}>{taskStatusLabels[latestTask.status]}</Tag> 最新任务</>}
+                showIcon
+                type={latestTask.status === "failed" ? "error" : latestTask.status === "completed" ? "success" : "info"}
+              />
             ) : (
-              <p className="muted-text">暂无链接。可以添加价格页、产品页或更新日志页用于追踪。</p>
+              <Alert description="点击手动刷新，生成第一份分析报告。" message="暂无采集任务" showIcon type="info" />
             )}
-            <div className="manual-row">
-              <label>
-                <span>名称</span>
-                <input onChange={(event) => setLinkLabel(event.target.value)} value={linkLabel} />
-              </label>
-              <label>
-                <span>URL</span>
-                <input onChange={(event) => setLinkUrl(event.target.value)} value={linkUrl} />
-              </label>
-              <button className="secondary-button" onClick={addLink} type="button">
-                添加链接
-              </button>
-            </div>
-          </div>
 
-          <button className="login-button" disabled={saving} type="submit">
-            {saving ? "保存中..." : "保存竞品"}
-          </button>
-        </form>
-      </section>
+            {message ? <Alert message={message} showIcon type="success" /> : null}
+            {error ? <Alert message={error} showIcon type="error" /> : null}
 
-      <aside className="panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">最新情报</span>
-            <h2>报告</h2>
-          </div>
-          <Link className="secondary-link" href={`/inbox?competitorId=${competitor.id}`}>
-            筛选收件箱
-          </Link>
-        </div>
+            <Form layout="vertical" onFinish={saveCompetitor}>
+              <Row gutter={16}>
+                <Col md={12} xs={24}>
+                  <Form.Item label="名称" required>
+                    <Input onChange={(event) => setName(event.target.value)} value={name} />
+                  </Form.Item>
+                </Col>
+                <Col md={12} xs={24}>
+                  <Form.Item label="主域名" required>
+                    <Input onChange={(event) => setMainDomain(event.target.value)} value={mainDomain} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-        {reports.length > 0 ? (
-          <div className="report-list">
-            {reports.map((report) => (
-              <Link className="report-card" href={`/reports/${report.id}`} key={report.id}>
-                <span className={`priority priority-${report.priority}`}>{priorityLabels[report.priority]}</span>
-                <strong>{report.title}</strong>
-                <small>{new Date(report.createdAt).toLocaleString("zh-CN")}</small>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <h2>暂无报告</h2>
-            <p>执行一次手动刷新，采集模拟变化并生成第一份报告。</p>
-          </div>
-        )}
-      </aside>
-    </div>
+              <Card size="small" title="关联链接">
+                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+                  {links.length > 0 ? (
+                    <List
+                      dataSource={links}
+                      renderItem={(link, index) => (
+                        <List.Item
+                          actions={[
+                            <Button
+                              danger
+                              key="remove"
+                              onClick={() => setLinks((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                              type="link"
+                            >
+                              移除
+                            </Button>,
+                          ]}
+                        >
+                          <List.Item.Meta description={link.url} title={link.label} />
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <Empty description="暂无链接，可以添加价格页、产品页或更新日志页用于追踪。" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  )}
+                  <Row align="bottom" gutter={12}>
+                    <Col md={10} xs={24}>
+                      <Form.Item label="名称">
+                        <Input onChange={(event) => setLinkLabel(event.target.value)} value={linkLabel} />
+                      </Form.Item>
+                    </Col>
+                    <Col md={10} xs={24}>
+                      <Form.Item label="URL">
+                        <Input onChange={(event) => setLinkUrl(event.target.value)} value={linkUrl} />
+                      </Form.Item>
+                    </Col>
+                    <Col md={4} xs={24}>
+                      <Button block onClick={addLink}>
+                        添加链接
+                      </Button>
+                    </Col>
+                  </Row>
+                </Space>
+              </Card>
+
+              <div className="form-actions">
+                <Button htmlType="submit" loading={saving} type="primary">
+                  保存竞品
+                </Button>
+              </div>
+            </Form>
+          </Space>
+        </Card>
+      </Col>
+
+      <Col lg={8} xs={24}>
+        <Card
+          extra={
+            <Link href={`/inbox?competitorId=${competitor.id}`}>
+              <Button>筛选收件箱</Button>
+            </Link>
+          }
+          title="最新情报"
+        >
+          {reports.length > 0 ? (
+            <List
+              dataSource={reports}
+              renderItem={(report) => (
+                <List.Item>
+                  <List.Item.Meta
+                    description={new Date(report.createdAt).toLocaleString("zh-CN")}
+                    title={
+                      <Space orientation="vertical" size={4}>
+                        <Tag color={priorityColors[report.priority]}>{priorityLabels[report.priority]}</Tag>
+                        <Link href={`/reports/${report.id}`}>{report.title}</Link>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          ) : (
+            <Empty description="执行一次手动刷新，采集模拟变化并生成第一份报告。" />
+          )}
+        </Card>
+      </Col>
+    </Row>
   );
 }

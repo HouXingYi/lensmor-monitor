@@ -109,6 +109,7 @@ export function hasCompletedOnboarding(cookieHeader: string | null): boolean {
 export function isProtectedPath(pathname: string): boolean {
   if (pathname === "/login") return false;
   if (pathname.startsWith("/api/auth/")) return false;
+  if (pathname.startsWith("/mock-pages/")) return false;
   if (pathname.startsWith("/_next/")) return false;
   if (pathname === "/favicon.ico") return false;
   return true;

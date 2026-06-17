@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, Button, Card, Form, Select, Space, Typography } from "antd";
 import { useState } from "react";
 
 import { type FeedbackType, type WrongReason } from "../../../lib/mvp-store";
@@ -51,41 +52,40 @@ export function ReportFeedbackForm({ reportId }: { reportId: string }) {
   }
 
   return (
-    <section className="panel feedback-panel">
-      <span className="eyebrow">反馈</span>
-      <h2>这份报告有帮助吗？</h2>
-      <p className="muted-text">
-        你的反馈会帮助系统判断哪些竞品变化更值得进入高价值情报。
-      </p>
+    <Card title="反馈">
+      <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          这份报告有帮助吗？
+        </Typography.Title>
+        <Typography.Text type="secondary">
+          你的反馈会帮助系统判断哪些竞品变化更值得进入高价值情报。
+        </Typography.Text>
 
-      <div className="feedback-actions">
-        <button disabled={Boolean(submitting)} onClick={() => submitFeedback("useful")} type="button">
-          {submitting === "useful" ? "保存中..." : "有帮助"}
-        </button>
-        <button disabled={Boolean(submitting)} onClick={() => submitFeedback("not_important")} type="button">
-          {submitting === "not_important" ? "保存中..." : "不重要"}
-        </button>
-      </div>
+        <Space wrap>
+          <Button loading={submitting === "useful"} onClick={() => submitFeedback("useful")}>
+            有帮助
+          </Button>
+          <Button loading={submitting === "not_important"} onClick={() => submitFeedback("not_important")}>
+            不重要
+          </Button>
+        </Space>
 
-      <div className="wrong-feedback">
-        <label>
-          <span>错误原因</span>
-          <select onChange={(event) => setWrongReason(event.target.value as WrongReason | "")} value={wrongReason}>
-            <option value="">请选择原因</option>
-            {wrongReasons.map((reason) => (
-              <option key={reason.value} value={reason.value}>
-                {reason.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button disabled={Boolean(submitting)} onClick={() => submitFeedback("wrong")} type="button">
-          {submitting === "wrong" ? "保存中..." : "错误"}
-        </button>
-      </div>
+        <Form layout="vertical" onFinish={() => submitFeedback("wrong")}>
+          <Form.Item label="错误原因">
+            <Select
+              onChange={(value) => setWrongReason(value as WrongReason | "")}
+              options={[{ label: "请选择原因", value: "" }, ...wrongReasons]}
+              value={wrongReason}
+            />
+          </Form.Item>
+          <Button danger htmlType="submit" loading={submitting === "wrong"}>
+            错误
+          </Button>
+        </Form>
 
-      {message ? <div className="success-message">{message}</div> : null}
-      {error ? <div className="onboarding-error">{error}</div> : null}
-    </section>
+        {message ? <Alert message={message} showIcon type="success" /> : null}
+        {error ? <Alert message={error} showIcon type="error" /> : null}
+      </Space>
+    </Card>
   );
 }

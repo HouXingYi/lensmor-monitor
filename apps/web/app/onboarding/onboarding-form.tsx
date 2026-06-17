@@ -1,7 +1,8 @@
 "use client";
 
+import { Alert, Button, Card, Checkbox, Col, Form, Input, List, Radio, Row, Space, Typography } from "antd";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 
 const roles = [
   "产品营销经理",
@@ -83,12 +84,6 @@ export function OnboardingForm() {
     setProduct((current) => ({ ...current, [field]: value }));
   }
 
-  function toggleRecommendedCompetitor(id: string) {
-    setSelectedCompetitorIds((current) =>
-      current.includes(id) ? current.filter((competitorId) => competitorId !== id) : [...current, id],
-    );
-  }
-
   function addManualCompetitor() {
     const name = manualName.trim();
     const mainDomain = manualDomain.trim();
@@ -108,8 +103,7 @@ export function OnboardingForm() {
     setManualCompetitors((current) => current.filter((_, currentIndex) => currentIndex !== index));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit() {
     setError(null);
 
     const nextProduct = trimProduct(product);
@@ -170,154 +164,135 @@ export function OnboardingForm() {
   }
 
   return (
-    <form className="onboarding-card" onSubmit={handleSubmit}>
-      <section className="onboarding-section">
-        <div className="section-heading">
-          <span>第 1 步，共 3 步</span>
-          <h2>选择你的角色</h2>
-        </div>
-        <div className="role-grid">
-          {roles.map((option) => (
-            <label className="choice-card" key={option}>
-              <input
-                checked={role === option}
-                name="role"
-                onChange={() => setRole(option)}
-                type="radio"
-                value={option}
-              />
-              <span>{option}</span>
-            </label>
-          ))}
-        </div>
-      </section>
-
-      <section className="onboarding-section">
-        <div className="section-heading">
-          <span>第 2 步，共 3 步</span>
-          <h2>填写自有产品信息</h2>
-        </div>
-        <div className="product-grid">
-          <label>
-            <span>产品名称</span>
-            <input
-              onChange={(event) => updateProductField("name", event.target.value)}
-              required
-              value={product.name}
-            />
-          </label>
-          <label>
-            <span>产品 URL</span>
-            <input
-              onChange={(event) => updateProductField("url", event.target.value)}
-              required
-              type="url"
-              value={product.url}
-            />
-          </label>
-          <label className="wide-field">
-            <span>一句话描述</span>
-            <input
-              onChange={(event) => updateProductField("oneLineDescription", event.target.value)}
-              required
-              value={product.oneLineDescription}
-            />
-          </label>
-          <label>
-            <span>目标用户</span>
-            <input
-              onChange={(event) => updateProductField("targetAudience", event.target.value)}
-              required
-              value={product.targetAudience}
-            />
-          </label>
-          <label>
-            <span>核心卖点</span>
-            <input
-              onChange={(event) => updateProductField("coreSellingPoints", event.target.value)}
-              required
-              value={product.coreSellingPoints}
-            />
-          </label>
-          <label>
-            <span>竞争优势</span>
-            <input
-              onChange={(event) => updateProductField("competitiveEdge", event.target.value)}
-              required
-              value={product.competitiveEdge}
-            />
-          </label>
-          <label>
-            <span>战略目标</span>
-            <input
-              onChange={(event) => updateProductField("strategicGoal", event.target.value)}
-              required
-              value={product.strategicGoal}
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="onboarding-section">
-        <div className="section-heading">
-          <span>第 3 步，共 3 步</span>
-          <h2>导入竞品</h2>
-        </div>
-        <div className="competitor-options">
-          {recommendedCompetitors.map((competitor) => (
-            <label className="choice-card competitor-choice" key={competitor.id}>
-              <input
-                checked={selectedCompetitorIds.includes(competitor.id)}
-                onChange={() => toggleRecommendedCompetitor(competitor.id)}
-                type="checkbox"
-              />
-              <span>
-                <strong>{competitor.name}</strong>
-                <small>{competitor.mainDomain}</small>
-              </span>
-            </label>
-          ))}
-        </div>
-
-        <div className="manual-competitor">
-          <h3>手动添加</h3>
-          <div className="manual-row">
-            <label>
-              <span>名称</span>
-              <input onChange={(event) => setManualName(event.target.value)} value={manualName} />
-            </label>
-            <label>
-              <span>主域名</span>
-              <input onChange={(event) => setManualDomain(event.target.value)} value={manualDomain} />
-            </label>
-            <button className="secondary-button" onClick={addManualCompetitor} type="button">
-              添加
-            </button>
-          </div>
-          {manualCompetitors.length > 0 ? (
-            <ul className="manual-list">
-              {manualCompetitors.map((competitor, index) => (
-                <li key={`${competitor.name}-${competitor.mainDomain}`}>
-                  <span>
-                    {competitor.name} <small>{competitor.mainDomain}</small>
-                  </span>
-                  <button onClick={() => removeManualCompetitor(index)} type="button">
-                    移除
-                  </button>
-                </li>
+    <Form layout="vertical" onFinish={handleSubmit}>
+      <Space orientation="vertical" size="large" style={{ width: "100%" }}>
+        <Card title="第 1 步，共 3 步：选择你的角色">
+          <Radio.Group buttonStyle="solid" onChange={(event) => setRole(event.target.value as string)} value={role}>
+            <Space wrap>
+              {roles.map((option) => (
+                <Radio.Button key={option} value={option}>
+                  {option}
+                </Radio.Button>
               ))}
-            </ul>
-          ) : null}
+            </Space>
+          </Radio.Group>
+        </Card>
+
+        <Card title="第 2 步，共 3 步：填写自有产品信息">
+          <Row gutter={16}>
+            <Col md={12} xs={24}>
+              <Form.Item label="产品名称" required>
+                <Input onChange={(event) => updateProductField("name", event.target.value)} value={product.name} />
+              </Form.Item>
+            </Col>
+            <Col md={12} xs={24}>
+              <Form.Item label="产品 URL" required>
+                <Input onChange={(event) => updateProductField("url", event.target.value)} type="url" value={product.url} />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item label="一句话描述" required>
+                <Input
+                  onChange={(event) => updateProductField("oneLineDescription", event.target.value)}
+                  value={product.oneLineDescription}
+                />
+              </Form.Item>
+            </Col>
+            <Col md={12} xs={24}>
+              <Form.Item label="目标用户" required>
+                <Input
+                  onChange={(event) => updateProductField("targetAudience", event.target.value)}
+                  value={product.targetAudience}
+                />
+              </Form.Item>
+            </Col>
+            <Col md={12} xs={24}>
+              <Form.Item label="核心卖点" required>
+                <Input
+                  onChange={(event) => updateProductField("coreSellingPoints", event.target.value)}
+                  value={product.coreSellingPoints}
+                />
+              </Form.Item>
+            </Col>
+            <Col md={12} xs={24}>
+              <Form.Item label="竞争优势" required>
+                <Input
+                  onChange={(event) => updateProductField("competitiveEdge", event.target.value)}
+                  value={product.competitiveEdge}
+                />
+              </Form.Item>
+            </Col>
+            <Col md={12} xs={24}>
+              <Form.Item label="战略目标" required>
+                <Input
+                  onChange={(event) => updateProductField("strategicGoal", event.target.value)}
+                  value={product.strategicGoal}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+
+        <Card title="第 3 步，共 3 步：导入竞品">
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            <Checkbox.Group
+              onChange={(values) => setSelectedCompetitorIds(values.map(String))}
+              value={selectedCompetitorIds}
+            >
+              <Row gutter={[12, 12]}>
+                {recommendedCompetitors.map((competitor) => (
+                  <Col md={8} xs={24} key={competitor.id}>
+                    <Checkbox value={competitor.id}>
+                      <Space orientation="vertical" size={0}>
+                        <Typography.Text strong>{competitor.name}</Typography.Text>
+                        <Typography.Text type="secondary">{competitor.mainDomain}</Typography.Text>
+                      </Space>
+                    </Checkbox>
+                  </Col>
+                ))}
+              </Row>
+            </Checkbox.Group>
+
+            <Card size="small" title="手动添加">
+              <Row align="bottom" gutter={12}>
+                <Col md={10} xs={24}>
+                  <Form.Item label="名称">
+                    <Input onChange={(event) => setManualName(event.target.value)} value={manualName} />
+                  </Form.Item>
+                </Col>
+                <Col md={10} xs={24}>
+                  <Form.Item label="主域名">
+                    <Input onChange={(event) => setManualDomain(event.target.value)} value={manualDomain} />
+                  </Form.Item>
+                </Col>
+                <Col md={4} xs={24}>
+                  <Button block onClick={addManualCompetitor}>
+                    添加
+                  </Button>
+                </Col>
+              </Row>
+              {manualCompetitors.length > 0 ? (
+                <List
+                  dataSource={manualCompetitors}
+                  renderItem={(competitor, index) => (
+                    <List.Item actions={[<Button key="remove" onClick={() => removeManualCompetitor(index)} type="link" danger>移除</Button>]}>
+                      <List.Item.Meta description={competitor.mainDomain} title={competitor.name} />
+                    </List.Item>
+                  )}
+                />
+              ) : null}
+            </Card>
+          </Space>
+        </Card>
+
+        {error ? <Alert message={error} showIcon type="error" /> : null}
+
+        <div className="form-actions">
+          <Button htmlType="submit" loading={submitting} size="large" type="primary">
+            完成设置
+          </Button>
         </div>
-      </section>
-
-      {error ? <div className="onboarding-error">{error}</div> : null}
-
-      <div className="onboarding-actions">
-        <button className="login-button" disabled={submitting} type="submit">
-          {submitting ? "正在完成设置..." : "完成设置"}
-        </button>
-      </div>
-    </form>
+      </Space>
+    </Form>
   );
 }
